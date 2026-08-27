@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Restaurante {
+  id        Int     @id @default(autoincrement())
+  nome      String
+  descricao String
+  logo      String?
+
+  // Para onde o botao "Pedir" leva. O admin escolhe: iFood, Instagram,
+  // WhatsApp, Rappi... Se ficar vazio, o site usa o link do Instagram.
+  linkPedido String?
+  textoBotao String  @default("Pedir")
+
+  // Contato exibido no rodape do site
+  instagram String?
+  endereco  String?
+  telefone  String?
+  email     String?
+  horario   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  admins    Admin[]
+  menuItems MenuItem[]
+}
+
+model MenuItem {
+  id            Int     @id @default(autoincrement())
+  nome          String
+  descricao     String?
+  preco         Float
+  categoria     String
+  imagem        String?
+  destaque      Boolean  @default(false)
+  // aparece no carrossel da capa
+  carrossel     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  restauranteId Int
+  restaurante   Restaurante @relation(fields: [restauranteId], references: [id], onDelete: Cascade)
+
+  @@index([restauranteId])
+}
+
+model Admin {
+  id            Int     @id @default(autoincrement())
+  email         String  @unique
+  senhaHash     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  restauranteId Int
+  restaurante   Restaurante @relation(fields: [restauranteId], references: [id], onDelete: Cascade)
+
+  @@index([restauranteId])
+}

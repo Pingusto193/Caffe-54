@@ -1,0 +1,317 @@
+[
+  {
+    "nome": "Mesa Caffè 54",
+    "categoria": "Vitrine",
+    "preco": 0.0,
+    "precoTexto": "Sem preço único",
+    "descricao": "Uma composição que reúne diferentes pratos do Caffè 54, destacando a variedade do brunch, a apresentação cuidadosa e a identidade visual da casa.",
+    "imagem": "cardapio_vitrine_mesa-caffe-54.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Colazione del Mattino",
+    "categoria": "Breakfast",
+    "preco": 46.0,
+    "precoTexto": "R$ 46",
+    "descricao": "Café da manhã completo com ovos fritos, bacon, creme de abacate, toast e manteiga da casa, servido em uma composição clássica de brunch.",
+    "imagem": "cardapio_breakfast_colazione-del-mattino.jpg",
+    "destaque": true
+  },
+  {
+    "nome": "Uova in Purgatorio Spinaci",
+    "categoria": "Breakfast",
+    "preco": 54.0,
+    "precoTexto": "R$ 54",
+    "descricao": "Ovos pochés servidos sobre creme de espinafre e finalizados com ervas frescas, em uma proposta leve e elegante.",
+    "imagem": "cardapio_breakfast_uova-in-purgatorio-spinaci.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Uova in Purgatorio",
+    "categoria": "Breakfast",
+    "preco": 50.0,
+    "precoTexto": "R$ 50",
+    "descricao": "Ovos pochés em molho de tomate da casa, com mozzarella e pesto, combinando sabores italianos em um prato acolhedor.",
+    "imagem": "cardapio_breakfast_uova-in-purgatorio.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Classico",
+    "categoria": "Breakfast",
+    "preco": 36.0,
+    "precoTexto": "R$ 36",
+    "descricao": "Ovos mexidos acompanhados de toast, apresentados de forma simples e tradicional para um café da manhã direto e saboroso.",
+    "imagem": "cardapio_breakfast_classico.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Waffle Salmone",
+    "categoria": "Breakfast",
+    "preco": 59.0,
+    "precoTexto": "R$ 59",
+    "descricao": "Waffle servido com salmão defumado, abacate e sour cream, equilibrando crocância, cremosidade e frescor.",
+    "imagem": "cardapio_breakfast_waffle-salmone.jpg",
+    "destaque": true
+  },
+  {
+    "nome": "Panini Misto",
+    "categoria": "Sanduíches",
+    "preco": 32.0,
+    "precoTexto": "R$ 32",
+    "descricao": "Sanduíche quente em pão de fermentação natural, com presunto artesanal, queijo e manteiga da casa.",
+    "imagem": "cardapio_sandwiches_panini-misto.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Croissant Sanduíche Parma",
+    "categoria": "Sanduíches",
+    "preco": 48.0,
+    "precoTexto": "R$ 48",
+    "descricao": "Croissant recheado com tomate assado, maionese da casa, mussarela de búfala, agrião e presunto Parma.",
+    "imagem": "cardapio_sandwiches_croissant-sanduiche-parma.jpg",
+    "destaque": true
+  },
+  {
+    "nome": "Croissant Sanduíche Caprese",
+    "categoria": "Sanduíches",
+    "preco": 44.0,
+    "precoTexto": "R$ 44",
+    "descricao": "Croissant recheado com queijo Brie, tomates assados e pesto, inspirado na combinação clássica de sabores italianos.",
+    "imagem": "cardapio_sandwiches_croissant-sanduiche-caprese.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Waffle del Mattino",
+    "categoria": "Breakfast",
+    "preco": 36.0,
+    "precoTexto": "R$ 36",
+    "descricao": "Waffle acompanhado de ovos fritos, bacon e molho especial da casa, pensado como uma opção completa de brunch.",
+    "imagem": "cardapio_breakfast_waffle-del-mattino.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Toast Pomodoro",
+    "categoria": "Breakfast",
+    "preco": 24.0,
+    "precoTexto": "R$ 24",
+    "descricao": "Pão de fermentação natural coberto com tomates assados e parmesão, valorizando ingredientes simples e sabores marcantes.",
+    "imagem": "cardapio_breakfast_toast-pomodoro.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Toast Pesto",
+    "categoria": "Breakfast",
+    "preco": 34.0,
+    "precoTexto": "R$ 34",
+    "descricao": "Pão de fermentação natural com creme de ricota, pesto e ovo, unindo cremosidade, ervas e textura crocante.",
+    "imagem": "cardapio_breakfast_toast-pesto.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Waffle Ciocolatto",
+    "categoria": "Doces",
+    "preco": 46.0,
+    "precoTexto": "R$ 46",
+    "descricao": "Waffle doce com creme de castanha e chocolate, morangos e castanhas, combinando intensidade, fruta e crocância.",
+    "imagem": "cardapio_doces_waffle-ciocolatto.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Tost Pistacchio",
+    "categoria": "Doces",
+    "preco": 28.0,
+    "precoTexto": "R$ 28",
+    "descricao": "Toast de fermentação natural com creme de ricota e creme praliné de pistache, em uma combinação cremosa e delicada.",
+    "imagem": "cardapio_doces_tost-pistacchio.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Croissant com Marmellata e Burro",
+    "categoria": "Doces",
+    "preco": 24.0,
+    "precoTexto": "R$ 24",
+    "descricao": "Croissant servido com geleia de frutas vermelhas e manteiga, uma combinação clássica para acompanhar o café.",
+    "imagem": "cardapio_doces_croissant-com-marmellata-e-burro.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Tiramisu",
+    "categoria": "Doces",
+    "preco": 38.0,
+    "precoTexto": "R$ 38",
+    "descricao": "Sobremesa italiana preparada com biscoito savoiardi, espresso da casa, creme de mascarpone e cacau.",
+    "imagem": "cardapio_doces_tiramisu.jpg",
+    "destaque": true
+  },
+  {
+    "nome": "Frutta Fresca e seleção da casa",
+    "categoria": "Vitrine",
+    "preco": 32.0,
+    "precoTexto": "R$ 32 (Frutta Fresca)",
+    "descricao": "Frutas frescas com creme de iogurte, granola e mel aparecem no centro de uma mesa com diferentes opções do Caffè 54.",
+    "imagem": "cardapio_vitrine_frutta-fresca-e-selecao-da-casa.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Cinnamon Roll",
+    "categoria": "Doces",
+    "preco": 28.0,
+    "precoTexto": "R$ 28",
+    "descricao": "Brioche coberta com creme aerado de manteiga e canela, enrolada como rocambole.",
+    "imagem": "cardapio_doces_cinnamon-roll.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Seleção de viennoiserie",
+    "categoria": "Vitrine",
+    "preco": 0.0,
+    "precoTexto": "Preços variam conforme o item",
+    "descricao": "Composição com diferentes itens de vitrine. No cardápio, os itens de confeitaria têm preços individuais.",
+    "imagem": "cardapio_vitrine_selecao-de-viennoiserie.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Cookies",
+    "categoria": "Vitrine",
+    "preco": 18.0,
+    "precoTexto": "R$ 18",
+    "descricao": "Seleção de cookies artesanais; os sabores disponíveis devem ser consultados na vitrine.",
+    "imagem": "cardapio_vitrine_cookies.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Sanduíche de vitrine",
+    "categoria": "Sanduíches",
+    "preco": 0.0,
+    "precoTexto": "Preço não identificável com segurança",
+    "descricao": "Sanduíche artesanal servido em pão de aparência rústica. O cardápio não associa essa foto, de forma inequívoca, a um único item com preço.",
+    "imagem": "cardapio_sandwiches_sanduiche-de-vitrine.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Brownie com sorvete",
+    "categoria": "Doces",
+    "preco": 38.0,
+    "precoTexto": "R$ 38 (R$ 24 + R$ 14)",
+    "descricao": "Brownie do cardápio com uma bola de sorvete Monte Pelmo. O valor indicado soma o brownie (R$ 24) ao adicional de sorvete (R$ 14).",
+    "imagem": "cardapio_doces_brownie-com-sorvete.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Café com leite texturizado",
+    "categoria": "Caffès Quentes",
+    "preco": 0.0,
+    "precoTexto": "Preço varia conforme a bebida",
+    "descricao": "Imagem de bebida à base de espresso e leite texturizado. Como a foto não identifica de forma inequívoca Piccolo, Latte ou Capuccino Italiano, o preço exato não pode ser atribuído com segurança.",
+    "imagem": "cardapio_caffes-quentes_cafe-com-leite-texturizado.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Ristretto e Espresso",
+    "categoria": "Caffès Quentes",
+    "preco": 10.0,
+    "precoTexto": "R$ 10 / R$ 14",
+    "descricao": "Duas extrações curtas de café: Ristretto por R$ 10 e Espresso por R$ 14.",
+    "imagem": "cardapio_caffes-quentes_ristretto-e-espresso.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Caffè preparato",
+    "categoria": "Caffès Quentes",
+    "preco": 10.0,
+    "precoTexto": "R$ 10",
+    "descricao": "Café coado na Moccamaster, com café do dia consultado no balcão.",
+    "imagem": "cardapio_caffes-quentes_caffe-preparato.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Capuccino Italiano",
+    "categoria": "Caffès Quentes",
+    "preco": 26.0,
+    "precoTexto": "R$ 26",
+    "descricao": "Espresso com leite vaporizado e espuma cremosa, em uma apresentação clássica.",
+    "imagem": "cardapio_caffes-quentes_capuccino-italiano.jpg",
+    "destaque": true
+  },
+  {
+    "nome": "Espresso",
+    "categoria": "Caffès Quentes",
+    "preco": 14.0,
+    "precoTexto": "R$ 14",
+    "descricao": "Dose de espresso de 40 ml, servida em xícara pequena.",
+    "imagem": "cardapio_caffes-quentes_espresso.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Lungo",
+    "categoria": "Caffès Quentes",
+    "preco": 14.0,
+    "precoTexto": "R$ 14",
+    "descricao": "Espresso prolongado em água, com 90 ml.",
+    "imagem": "cardapio_caffes-quentes_lungo.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Mocha Freddo",
+    "categoria": "Caffès Gelados",
+    "preco": 33.0,
+    "precoTexto": "R$ 33",
+    "descricao": "Bebida gelada com espresso, leite vaporizado e chocolate nobre.",
+    "imagem": "cardapio_caffes-gelados_mocha-freddo.jpg",
+    "destaque": true
+  },
+  {
+    "nome": "Latte Freddo",
+    "categoria": "Caffès Gelados",
+    "preco": 28.0,
+    "precoTexto": "R$ 28",
+    "descricao": "Cold brew combinado com leite vaporizado, servido gelado.",
+    "imagem": "cardapio_caffes-gelados_latte-freddo.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Orange Espresso",
+    "categoria": "Caffès Gelados",
+    "preco": 26.0,
+    "precoTexto": "R$ 26",
+    "descricao": "Bebida refrescante com suco de laranja, espresso e gelo.",
+    "imagem": "cardapio_caffes-gelados_orange-espresso.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Matcha Freddo",
+    "categoria": "Caffès Gelados",
+    "preco": 30.0,
+    "precoTexto": "R$ 30",
+    "descricao": "Matcha gelado com calda de baunilha e gelo.",
+    "imagem": "cardapio_caffes-gelados_matcha-freddo.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Espresso Martini",
+    "categoria": "Bebidas Especiais",
+    "preco": 42.0,
+    "precoTexto": "R$ 42",
+    "descricao": "Drink preparado com vodka, espresso e licor de café.",
+    "imagem": "cardapio_bebidas-especiais_espresso-martini.jpg",
+    "destaque": true
+  },
+  {
+    "nome": "Bebidas geladas da casa",
+    "categoria": "Bebidas Especiais",
+    "preco": 22.0,
+    "precoTexto": "R$ 22 cada (Soda Italiana da Casa)",
+    "descricao": "Duas bebidas refrescantes da casa. No cardápio, a Soda Italiana da Casa custa R$ 22 e pode ser de limão siciliano ou frutas vermelhas.",
+    "imagem": "cardapio_bebidas-especiais_bebidas-geladas-da-casa.jpg",
+    "destaque": false
+  },
+  {
+    "nome": "Experiência Caffè 54",
+    "categoria": "Vitrine",
+    "preco": 0.0,
+    "precoTexto": "Sem preço único",
+    "descricao": "Vista de uma mesa completa com pratos doces e salgados, cafés e itens de brunch; cada item possui preço próprio no cardápio.",
+    "imagem": "cardapio_vitrine_experiencia-caffe-54.jpg",
+    "destaque": false
+  }
+]

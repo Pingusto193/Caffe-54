@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caffè 54 — Sofisticação Italiana em Florianópolis</title>
+  <meta name="description" content="Brunch italiano, confeitaria artesanal e cafés especiais em Florianópolis. Veja o cardápio completo do Caffè 54.">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Caffè 54 — Sofisticação Italiana">
+  <meta property="og:description" content="Brunch italiano, confeitaria artesanal e cafés especiais em Florianópolis.">
+  <meta property="og:image" content="images/hero.jpg">
+
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lora:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+
+  <script>
+    // Roda antes da primeira pintura: sem isso a cortina pisca em quem
+    // já a viu nesta sessão. O destravamento do scroll tem prazo próprio,
+    // para não depender do app.js ter carregado.
+    (function () {
+      var raiz = document.documentElement;
+      var pular = false;
+      try { pular = sessionStorage.getItem("caffe54:abertura") === "1"; } catch (e) {}
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) pular = true;
+      raiz.classList.add(pular ? "sem-abertura" : "abertura-ativa");
+      if (!pular) {
+        setTimeout(function () { raiz.classList.remove("abertura-ativa"); }, 3200);
+      }
+    })();
+  </script>
+</head>
+<body>
+
+<!-- ============ ABERTURA ============ -->
+<div class="abertura" id="abertura" role="presentation">
+  <span class="abertura-cortina abertura-cortina-topo"></span>
+  <span class="abertura-cortina abertura-cortina-base"></span>
+  <div class="abertura-conteudo">
+    <span class="abertura-risco" aria-hidden="true"></span>
+    <p class="abertura-nome" id="abertura-nome" aria-hidden="true"></p>
+    <p class="abertura-linha">Sofisticação Italiana</p>
+    <div class="abertura-barra"><span class="abertura-barra-cheia"></span></div>
+  </div>
+</div>
+
+<a href="#cardapio" class="pular-para">Ir direto para o cardápio</a>
+
+<!-- ============ HEADER ============ -->
+<header class="cabecalho">
+  <div class="area cabecalho-conteudo">
+    <a href="#topo" class="marca">
+      <span class="marca-nome" data-nome-cafe>Caffè 54</span>
+      <span class="marca-linha" data-descricao-cafe>Sofisticação Italiana</span>
+    </a>
+    <nav class="navegacao" aria-label="Principal">
+      <a href="#cardapio" class="nav-link">Cardápio</a>
+      <a class="botao botao-ouro botao-pequeno" data-link-pedido href="#" target="_blank" rel="noopener">
+        <span data-texto-botao>Pedir</span>
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main id="topo">
+
+  <!-- ============ HERO / CARROSSEL ============ -->
+  <section class="hero" id="hero">
+    <div class="hero-fotos" id="hero-fotos">
+      <!-- fallback: sai assim que o carrossel monta -->
+      <div class="hero-slide ativo">
+        <img src="images/hero.jpg" alt="Mesa do Caffè 54 com bowl de frutas, waffle, salmão, toast e ovos"
+             fetchpriority="high">
+      </div>
+    </div>
+    <div class="hero-veu"></div>
+
+    <div class="area hero-conteudo">
+      <div class="hero-texto">
+        <h1 class="hero-titulo" data-nome-cafe data-entrada style="--atraso: 120ms">Caffè 54</h1>
+        <p class="hero-subtitulo" data-descricao-cafe data-entrada style="--atraso: 240ms">Sofisticação Italiana</p>
+
+        <div class="hero-prato" id="hero-prato" data-entrada style="--atraso: 380ms" hidden>
+          <span class="hero-prato-topo" id="hero-prato-categoria"></span>
+          <span class="hero-prato-nome" id="hero-prato-nome"></span>
+          <span class="hero-prato-preco" id="hero-prato-preco"></span>
+        </div>
+
+        <div class="hero-controles" id="hero-controles" data-entrada style="--atraso: 480ms" hidden>
+          <button type="button" class="hero-seta" id="hero-anterior" aria-label="Foto anterior">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+          </button>
+          <div class="hero-pontos" id="hero-pontos" role="tablist" aria-label="Escolher foto"></div>
+          <button type="button" class="hero-seta" id="hero-proximo" aria-label="Próxima foto">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="hero-vitrine" id="hero-vitrine" data-entrada style="--atraso: 320ms" hidden></div>
+    </div>
+  </section>
+
+  <!-- ============ FILTROS ============ -->
+  <nav class="barra-filtros" id="cardapio" aria-label="Filtrar por categoria">
+    <div class="area filtros" id="filtros" role="tablist"></div>
+  </nav>
+
+  <!-- ============ GRID DO MENU ============ -->
+  <section class="secao-menu">
+    <div class="area">
+      <p class="aviso" id="aviso" role="status" hidden></p>
+      <div id="grade"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="rodape">
+  <div class="area rodape-conteudo">
+    <div class="rodape-bloco">
+      <p class="rodape-marca" data-nome-cafe>Caffè 54</p>
+      <p class="rodape-texto" data-horario></p>
+    </div>
+
+    <div class="rodape-bloco" data-bloco="endereco">
+      <p class="rodape-rotulo">Onde estamos</p>
+      <p class="rodape-texto" data-endereco></p>
+    </div>
+
+    <div class="rodape-bloco" data-bloco="contato">
+      <p class="rodape-rotulo">Contato</p>
+      <p class="rodape-texto">
+        <a data-telefone href="#"></a><br>
+        <a data-email href="#"></a>
+      </p>
+    </div>
+
+    <div class="rodape-bloco" data-bloco="instagram">
+      <p class="rodape-rotulo">Pedidos</p>
+      <a class="rodape-instagram" data-instagram href="#" target="_blank" rel="noopener">
+        <svg class="icone" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/>
+          <circle cx="12" cy="12" r="4.2"/>
+          <circle cx="17.6" cy="6.4" r="1.2" class="preenchido"/>
+        </svg>
+        <span data-instagram-usuario></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="area rodape-base">
+    <p data-nota-pedido></p>
+  </div>
+</footer>
+
+<!-- ============ FOTO AMPLIADA ============ -->
+<dialog class="lupa" id="lupa" aria-labelledby="lupa-nome">
+  <button type="button" class="lupa-fechar" id="lupa-fechar" aria-label="Fechar">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <div class="lupa-conteudo">
+    <figure class="lupa-figura"><img id="lupa-imagem" src="" alt=""></figure>
+    <div class="lupa-texto">
+      <p class="lupa-categoria" id="lupa-categoria"></p>
+      <h2 class="lupa-nome" id="lupa-nome"></h2>
+      <p class="lupa-descricao" id="lupa-descricao"></p>
+      <p class="lupa-preco" id="lupa-preco"></p>
+      <a class="botao botao-ouro botao-largo" id="lupa-pedir" data-link-pedido
+         href="#" target="_blank" rel="noopener"><span data-texto-botao>Pedir</span></a>
+    </div>
+  </div>
+</dialog>
+
+<!-- ============ BOTÃO DO PAINEL ============ -->
+<button type="button" class="gatilho-admin" id="gatilho-admin"
+        aria-haspopup="dialog" aria-controls="admin" title="Área administrativa">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="3.2"/>
+    <path d="M12 2.6v2.2M12 19.2v2.2M21.4 12h-2.2M4.8 12H2.6M18.6 5.4l-1.6 1.6M7 17l-1.6 1.6M18.6 18.6L17 17M7 7L5.4 5.4"/>
+  </svg>
+  <span class="sr">Área administrativa</span>
+</button>
+
+<!-- ============ PAINEL ADMIN ============ -->
+<div class="sobreposicao" id="sobreposicao" hidden></div>
+
+<aside class="admin" id="admin" role="dialog" aria-modal="true" aria-labelledby="admin-titulo" hidden>
+
+  <div class="admin-cabecalho">
+    <h2 class="admin-titulo" id="admin-titulo">Painel</h2>
+    <button type="button" class="fechar" id="admin-fechar" aria-label="Fechar painel">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+
+  <div class="admin-corpo">
+
+    <!-- login -->
+    <form id="formulario-login" class="bloco" novalidate>
+      <p class="bloco-texto">Entre para gerenciar o cardápio e as configurações do site.</p>
+      <label class="campo">
+        <span>E-mail</span>
+        <input type="email" id="login-email" autocomplete="username" required>
+      </label>
+      <label class="campo">
+        <span>Senha</span>
+        <input type="password" id="login-senha" autocomplete="current-password" required>
+      </label>
+      <button type="submit" class="botao botao-ouro botao-largo">Entrar</button>
+    </form>
+
+    <!-- dashboard -->
+    <div id="dashboard" hidden>
+
+      <!-- configurações do site -->
+      <div class="bloco">
+        <div class="sessao-topo">
+          <h3 class="bloco-titulo">Botão de Pedido</h3>
+        </div>
+        <p class="bloco-texto">
+          Escolha para onde o botão leva quando alguém clicar: iFood, Instagram,
+          WhatsApp, Rappi ou qualquer outro endereço.
+        </p>
+        <form id="formulario-config" novalidate>
+          <label class="campo">
+            <span>Link do botão</span>
+            <input type="url" name="linkPedido" placeholder="https://www.ifood.com.br/delivery/seu-caffe">
+            <small class="dica">Enquanto estiver vazio, o botão não aparece no site.</small>
+          </label>
+          <label class="campo">
+            <span>Texto do botão</span>
+            <input type="text" name="textoBotao" maxlength="24" placeholder="Pedir">
+          </label>
+
+          <div class="atalhos" id="atalhos">
+            <span class="atalhos-rotulo">Preencher com:</span>
+            <button type="button" class="atalho" data-destino="instagram">Instagram</button>
+            <button type="button" class="atalho" data-destino="whatsapp">WhatsApp</button>
+            <button type="button" class="atalho" data-destino="ifood">iFood</button>
+          </div>
+
+          <hr class="divisor">
+
+          <label class="campo">
+            <span>Nome do café</span>
+            <input type="text" name="nome" maxlength="60">
+          </label>
+          <label class="campo">
+            <span>Frase de apoio</span>
+            <input type="text" name="descricao" maxlength="80">
+          </label>
+          <label class="campo">
+            <span>Instagram <small>(sem arroba)</small></span>
+            <input type="text" name="instagram" placeholder="caffe54floripa">
+          </label>
+          <label class="campo">
+            <span>Endereço</span>
+            <input type="text" name="endereco">
+          </label>
+          <div class="dupla">
+            <label class="campo">
+              <span>Telefone</span>
+              <input type="text" name="telefone">
+            </label>
+            <label class="campo">
+              <span>E-mail</span>
+              <input type="email" name="email">
+            </label>
+          </div>
+          <label class="campo">
+            <span>Horário</span>
+            <input type="text" name="horario">
+          </label>
+
+          <button type="submit" class="botao botao-ouro botao-largo">Salvar Configurações</button>
+        </form>
+      </div>
+
+      <!-- criar item -->
+      <div class="bloco">
+        <div class="sessao-topo">
+          <h3 class="bloco-titulo">Adicionar Novo Item</h3>
+        </div>
+        <form id="formulario-criar" novalidate>
+          <label class="campo">
+            <span>Nome <em>*</em></span>
+            <input type="text" name="nome" required>
+          </label>
+          <label class="campo">
+            <span>Descrição <em>*</em></span>
+            <textarea name="descricao" rows="3" required></textarea>
+          </label>
+          <div class="dupla">
+            <label class="campo">
+              <span>Preço (R$) <em>*</em></span>
+              <input type="number" name="preco" step="0.01" min="0" required>
+            </label>
+            <label class="campo">
+              <span>Categoria <em>*</em></span>
+              <select name="categoria" class="seletor-categoria" required></select>
+            </label>
+          </div>
+          <div class="campo-imagem">
+            <label class="campo">
+              <span>Imagem <small>(opcional)</small></span>
+              <input type="text" name="imagem" list="imagens-disponiveis"
+                     placeholder="Nenhuma imagem">
+            </label>
+            <div class="envio">
+              <label class="botao botao-contorno botao-pequeno rotulo-arquivo">
+                Enviar do computador
+                <input type="file" data-upload accept="image/jpeg,image/png,image/webp,image/avif" hidden>
+              </label>
+              <span class="envio-aviso" data-envio-aviso></span>
+            </div>
+            <figure class="previa" data-previa hidden><img alt=""></figure>
+          </div>
+          <label class="marcador">
+            <input type="checkbox" name="destaque">
+            <span>Marcar como destaque</span>
+          </label>
+          <label class="marcador">
+            <input type="checkbox" name="carrossel">
+            <span>Mostrar no carrossel da capa</span>
+          </label>
+          <button type="submit" class="botao botao-ouro botao-largo">Criar Item</button>
+        </form>
+      </div>
+
+      <!-- lista -->
+      <div class="bloco">
+        <div class="sessao-topo">
+          <h3 class="bloco-titulo">Itens do Cardápio</h3>
+          <span class="contagem" id="contagem"></span>
+        </div>
+        <input type="search" id="busca" class="busca" placeholder="Buscar por nome ou categoria">
+        <ul class="lista" id="lista"></ul>
+        <p class="lista-vazia" id="lista-vazia" hidden>Nenhum item encontrado.</p>
+      </div>
+
+      <button type="button" class="botao botao-sair botao-largo" id="botao-sair">Sair</button>
+    </div>
+
+  </div>
+</aside>
+
+<datalist id="imagens-disponiveis"></datalist>
+
+<div class="notificacoes" id="notificacoes" aria-live="polite"></div>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
