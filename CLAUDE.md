@@ -1,28 +1,30 @@
 # Caffè 54
 
-Site de cardápio de um café italiano em Florianópolis. O site **não processa pedidos**:
-ele mostra as fotos e o cardápio, e o botão de pedido leva para fora (iFood, Instagram,
-WhatsApp — quem escolhe o destino é o admin, pelo painel do próprio site).
+Site institucional + cardápio de um café italiano em Florianópolis. **MVP**: o site
+**não processa pedidos** — mostra fotos, cardápio, informações do estabelecimento,
+endereço, horário e mapa. A pessoa chega pelo Instagram da casa, abre o link e vê
+tudo. Sem delivery, iFood, WhatsApp, reservas ou pagamento — isso fica para depois.
 
 ## Comandos
 
 ```bash
 npm run dev              # nodemon, sobe em http://localhost:3001
 npm start                # sem reload
-npm run db:migrate       # prisma migrate dev
-npm run db:seed          # recria cardápio + admin (APAGA e recria os itens)
+npm run db:migrate       # prisma migrate dev  (--create-only em ambiente não-interativo)
+npm run db:seed          # recria categorias + cardápio + admin (APAGA e recria)
 npm run db:studio        # prisma studio
-npm run extrair-pdf -- <caminho.pdf>   # reextrai imagens e dados do PDF
-
-python scripts/olhar-site.py [pasta]   # screenshots desktop/tablet/mobile + console
+npm run db:generate      # regenera o client
+npm run extrair-pdf -- <caminho.pdf>   # reextrai imagens e dados do PDF (precisa de Python)
 ```
 
-Login do painel: `admin@caffe54.com` / `caffe54` (definido em `.env`, criado pelo seed).
+Login do painel: **usuário** `admin.kf54` + senha (ambos em `.env` como
+`ADMIN_USUARIO` / `ADMIN_SENHA`, criados pelo seed). É usuário, não e-mail — a coluna
+`Admin.usuario` (era `email`).
 
 ## Arquitetura
 
 - **Backend**: Express 5 + Prisma 7 (PostgreSQL), ESM puro, sem TypeScript no servidor.
-  `src/server.js` serve a API **e** o conteúdo estático de `frontend/`, tudo na porta 3001.
+  `backend/server.js` serve a API **e** o conteúdo estático de `frontend/`, porta 3001.
 - **Frontend**: HTML + CSS + JavaScript puro em `frontend/`. Sem build, sem framework.
 - **Banco**: PostgreSQL local, base `caffe-54`.
 
@@ -34,57 +36,82 @@ backend/           server.js
   generated/       client do Prisma (ignorado no git)
 frontend/          index.html, css/styles.css, js/app.js, js/config.js
                    images/hero.jpg (reserva), images/cardapio/ (fotos + uploads)
-scripts/           extrair-pdf.py, olhar-site.py
-.claude/skills/    33 skills do awesome-claude-skills
+scripts/           extrair-pdf.py, olhar-site.py  (precisam de Python — ver abaixo)
 ```
 
 Todo comando do Prisma passa `--config backend/prisma.config.ts` (já está nos
-scripts do `package.json`). Sem isso o CLI procura o config na raiz e não acha.
+scripts do `package.json`).
 
 ### Rotas
 
 | Rota | Auth | O quê |
 |---|---|---|
-| `GET /config` | não | link do botão, textos e contato do rodapé |
-| `PUT /config` | JWT | admin edita o acima |
-| `GET /menu` | não | todos os itens |
+| `GET /config` | não | nome, descrição, contato, `sobre`, `horarios` |
+| `PUT /config` | JWT | dono edita `instagram/endereco/telefone/email/sobre` + `horarios` |
+| `GET /categorias` | não | categorias ordenadas por `ordem` |
+| `POST /categorias` | JWT | cria |
+| `PUT /categorias/ordenar` | JWT | reordena — body `{ ids: [...] }` (vem **antes** de `/:id`) |
+| `PUT /categorias/:id` | JWT | renomeia |
+| `DELETE /categorias/:id` | JWT | exclui; **409** se tiver itens |
+| `GET /menu` | não | só itens **ativos**, com `categoria`/`categoriaOrdem` achatados |
+| `GET /menu/admin` | JWT | todos os itens, inclusive inativos (lista do painel) |
 | `GET /menu/:id` | não | um item |
-| `POST /menu` | JWT | cria |
-| `PUT /menu/:id` | JWT | edita |
+| `POST /menu` | JWT | cria (`categoriaId`, `ativo`, `destaque`) |
+| `PUT /menu/:id` | JWT | edita (envie só os campos que mudam) |
 | `DELETE /menu/:id` | JWT | remove |
 | `POST /admin/login` | não | devolve o token JWT |
+| `POST /admin/register` | JWT | cria outro admin (protegido) |
 | `POST /upload` | JWT | envia uma foto, devolve o nome do arquivo |
 | `GET /imagens` | JWT | lista os arquivos de `frontend/images/cardapio/` |
 
 ### Modelos
 
-`Restaurante` guarda a configuração do site (`linkPedido`, `textoBotao`, `instagram`,
-`endereco`, `telefone`, `email`, `horario`). `MenuItem` tem `destaque` e `carrossel`
-além dos campos óbvios. `Admin` tem `senhaHash` (bcrypt). Tudo pendurado em `restauranteId = 1`.
+- **`Restaurante`**: `nome`, `descricao` (usados no site, **sem UI no painel** — o dono
+  não renomeia o café por enquanto), `linkPedido`/`textoBotao` (guardados, sem UI —
+  prontos para um botão de pedido futuro), `instagram`, `endereco`, `telefone`,
+  `email`, `sobre`, `horarios` (JSON `[{dia,abre,fecha,fechado}]`, 7 dias).
+- **`Categoria`**: `nome`, `ordem`, `@@unique([restauranteId, nome])`. Gerenciada pelo
+  painel (criar/renomear/reordenar/excluir). A `ordem` define a ordem dos blocos no site.
+- **`MenuItem`**: `nome`, `descricao`, `preco`, `imagem`, `destaque`, `ativo`,
+  `categoriaId` (FK, `onDelete: Restrict`). **Não tem mais `categoria` string nem `carrossel`.**
+- **`Admin`**: `usuario` (@unique), `senhaHash` (bcrypt). `POST /admin/login` aceita
+  `{usuario, senha}` (e `{email}` como alias legado).
+- Tudo pendurado em `restauranteId = 1` (`RESTAURANTE_ID` no server.js). Ver
+  "Login por estabelecimento" abaixo.
 
 ## Armadilhas conhecidas
 
 **Prisma 7 não aceita `url` no `schema.prisma`.** A connection string fica em
 `prisma.config.ts` (para o Migrate) e no adapter `@prisma/adapter-pg` (para o client,
-em `src/lib/prisma.ts`). O `datasource` do schema só declara o provider.
+em `backend/lib/prisma.ts`). O `datasource` do schema só declara o provider.
 
-**A extensão Prisma do VS Code tem `prisma.pinToPrisma6`.** Se ligada, ela valida o
-schema com as regras da v6 e sublinha o arquivo inteiro de vermelho. O erro é só do
-editor. Já está desligada nas settings do usuário.
+**`prisma migrate dev` é interativo e recusa rodar sem TTY** quando há warning de perda
+de dados. Para criar uma migração aqui: `prisma migrate diff --from-config-datasource
+--to-schema backend/prisma/schema.prisma --script` gera o SQL; salve num diretório novo
+em `migrations/` e aplique com `prisma migrate deploy`. `prisma migrate reset` é
+**bloqueado para agentes de IA** (guard do próprio Prisma) — precisa de consentimento
+explícito do usuário.
 
 **Imports ESM precisam da extensão.** `import { prisma } from "./lib/prisma.ts"` — sem
-o `.ts` dá `ERR_MODULE_NOT_FOUND`. O Node 25 faz type-stripping nativo do arquivo `.ts`.
+o `.ts` dá `ERR_MODULE_NOT_FOUND`. O Node faz type-stripping nativo do `.ts`.
 
-**`[hidden]` perde para `display: flex/grid/inline-flex`.** Por isso existe
-`[hidden] { display: none !important; }` no topo do `styles.css`. Sem isso, elementos
-escondidos por JS continuam aparecendo.
+**`[hidden]` perde para `display: flex/grid`.** Por isso existe
+`[hidden] { display: none !important; }` no topo do `styles.css`. As seções do painel
+(`.painel-secao`) dependem disso.
 
-**`npm run db:seed` apaga o cardápio e sobrescreve a configuração do site** com os
-valores de `CONFIG_INICIAL` em `prisma/seed.js`. Não rode em produção sem pensar.
+**`npm run db:seed` apaga categorias + cardápio e zera a config do site.** Não rode
+em produção sem pensar.
+
+**`overrides: { "deepmerge-ts": "^8" }` no package.json** resolve 3 vulns high herdadas
+do `@prisma/config`. Não remover sem checar `npm audit`.
+
+**Python não está instalado nesta máquina.** `olhar-site.py`, `extrair-pdf.py` e a skill
+`webapp-testing` não rodam. Para screenshots: Chrome headless + DevTools Protocol
+(Node tem `WebSocket` global). Scripts de exemplo no scratchpad da sessão.
 
 ## Design
 
-Paleta e tipografia foram especificadas pelo dono do projeto — não trocar sem pedir:
+Paleta e tipografia foram especificadas pelo dono — não trocar sem pedir:
 
 ```
 #2C3E2D  verde escuro     #F9F7F2  creme (fundo)
@@ -95,102 +122,111 @@ Paleta e tipografia foram especificadas pelo dono do projeto — não trocar sem
 
 Playfair Display (display) · Lora (corpo) · Inter (interface), via Google Fonts.
 
+**Cabeçalho**: só a marca. Sem link "Cardápio" e sem botão de Instagram/pedido — quem
+chega já vem do Instagram da casa.
+
 Grid 4 colunas no desktop (padding 40px), 3 no tablet (24px), 1 no mobile (16px).
-Header 80px sticky, hero 400px.
 
-Os cards são ordenados pela sequência das categorias do menu (Breakfast primeiro),
-com os destaques no topo de cada uma — a ordem alfabética do banco colocava fotos
-ruins na frente.
+Os cards seguem a **ordem das categorias** (`Categoria.ordem`, definida no painel), com
+os destaques no topo de cada uma. Em "Todos", o cardápio é dividido em blocos por
+categoria com título em Playfair; filtrando uma categoria só, o título some.
 
-Em "Todos", o cardápio é dividido em blocos por categoria, cada um com título em
-Playfair e a contagem de itens. Filtrando uma categoria só, o título some (seria
-redundante com a pill ativa).
+A capa é um carrossel dos itens marcados como `destaque` no painel (aba "Destaques").
+Sem destaques, fica a foto fixa `images/hero.jpg`.
 
-A capa é um carrossel dos itens marcados com `carrossel` no painel. Sem nenhum
-marcado, usa os `destaque`; sem destaques, fica a foto fixa `images/hero.jpg`.
+**As fotos do cardápio são retrato.** No desktop a foto vai **emoldurada** (272x344) à
+direita e o **fundo é ela mesma desfocada** (blur 44px). No celular a foto vira o fundo
+sem desfoque. O texto fica à esquerda sobre um gradiente direcional.
 
-**As fotos do cardápio são retrato.** Numa faixa de 400px elas viram um close
-irreconhecível — foi o primeiro erro deste hero. Por isso, no desktop, a foto vai
-**emoldurada** (272x344) à direita e o **fundo é ela mesma desfocada** (blur 44px,
-brightness 0.85), só para dar cor. No celular não cabe moldura: ali a foto vira o
-fundo sem desfoque, porque 375x320 é um recorte aceitável para retrato.
-
-O texto fica à esquerda sobre um gradiente direcional — centralizar sobre foto de
-comida clara sempre gera uma mancha escura no meio.
-
-Cada foto só recebe `src` quando chega a vez dela (`carregarFoto` cuida da atual e
-da próxima). Sem isso, 7 imagens carregariam de uma vez na primeira pintura.
-O giro para com o mouse em cima e com a aba em segundo plano.
+Cada foto do carrossel só recebe `src` quando chega a vez dela. O giro para com o
+mouse em cima e com a aba em segundo plano.
 
 Clicar na foto do card abre uma lupa (`<dialog>`) com a imagem grande, descrição e
-preço. É o momento em que a pessoa decide pedir.
+preço. Sem botão de pedido (MVP).
 
-O botão de pedido do card usa `botao-ouro-leve` (contorno), não o dourado cheio: o
-mesmo link se repete em 35 cards e viraria uma parede de blocos. O botão cheio fica
-só no cabeçalho e na lupa.
+**Ordem da home**: capa → `#sobre` (apresentação, `config.sobre`) → `#visite` (faixa
+fina de localização) → intro do cardápio → filtros → grade.
+
+**Faixa `#visite`**: endereço + horário + link "Ver no mapa" (sem iframe — o mapa
+embutido saía grande demais). Estilo discreto/opaco, alinhado à esquerda, borda
+hairline. Cada parte só aparece se o dono preencheu; vazia = faixa escondida. A prévia
+do mapa (iframe) vive só no painel, aba Localização (`#local-previa`).
+
+**Horários**: `formatarHorarios()` agrupa dias seguidos com o mesmo horário
+("Seg a Sex: 08:00–18:00"). Usado na faixa `#visite` e no rodapé.
+
+## Painel administrativo
+
+`<aside class="admin">` = cabeçalho + (login **ou** dashboard). O dashboard é uma
+**faixa de abas** (`.admin-nav`) + área de conteúdo; só a `.painel-secao` ativa aparece
+(`secaoAtiva`, `trocarSecao()`). Abas: Cardápio · Categorias · Destaques ·
+Estabelecimento · Localização · Horários · Conta.
+
+Reordenar categorias no painel usa FLIP (`animarReordenacao()`) para as linhas
+deslizarem até a nova posição.
+
+`atualizarPainel()` repovoa todas as seções a partir de `pratos`/`categorias`/`config`.
+Cada campo não-óbvio tem um `<small class="dica">`.
 
 ## Animação
 
-A linguagem veio do portfólio do dono (`github.com/Pingusto193/Portifolio`), na
-paleta do café. Easings: `--mola: cubic-bezier(0.22, 1, 0.36, 1)` para entradas,
-`--saida: cubic-bezier(0.65, 0, 0.35, 1)` para saídas.
+Linguagem do portfólio do dono, na paleta do café. `--mola` para entradas, `--saida`
+para saídas.
 
-**Abertura** (`.abertura`): duas cortinas verdes que se abrem (`scaleY` 1 para 0),
-nome letra a letra com `--i` escalonando o `animation-delay`, filete em gradiente
-dourado e barra de carregamento. Sai aos 2000 ms.
+**Abertura** (`.abertura`): véu verde-escuro. As duas metades do nome (`.abertura-metade`,
+mesmo texto clipado em `inset(0 0 50% 0)` e `inset(50% 0 0 0)`) deslizam para se
+encontrar no centro enquanto um anel dourado se desenha em volta (SVG `circle` com
+`pathLength="1"` + `stroke-dashoffset`). Aos 1900 ms entra `.saindo`: o palco recolhe
+e um **buraco radial cresce** (`@property --ab-furo` numa `mask-image`), revelando o
+site por dentro. `abertura.remove()` aos 2750 ms.
 
-Três cuidados que não podem ser removidos:
+Três cuidados intocáveis: (1) script inline no `<head>` decide antes da primeira
+pintura se a abertura aparece; (2) roda uma vez por sessão
+(`sessionStorage: caffe54:abertura`); (3) `setTimeout` de 3200 ms destrava o scroll sem
+depender do `app.js` (tem de ser ≥ o fim da animação).
 
-1. Um script **inline no `<head>`** decide antes da primeira pintura se a cortina
-   aparece. Sem ele, quem já a viu enxerga um flash verde.
-2. A cortina roda **uma vez por sessão** (`sessionStorage: caffe54:abertura`).
-3. O mesmo script inline tem um `setTimeout` de 3200 ms que destrava o scroll.
-   O travamento não pode depender do `app.js` ter carregado.
+O nome é estático no HTML ("Caffè 54"), não vem do `config`.
 
-As letras usam `NOME_PADRAO`, não `config.nome`: o filete começa a animar no
-primeiro quadro e esperar o `GET /config` dessincroniza a escada.
+**Painel como página**: `.admin` ocupa `inset: 0` (tela toda) e abre com
+`clip-path: circle()` crescendo a partir do botão da engrenagem — `abrirPainel()` põe
+`--ox/--oy` com o `getBoundingClientRect()` do gatilho. `fecharPainel()` reverte e só
+esconde (`hidden`) ao fim da animação. Não há mais `.sobreposicao`.
 
-**Entrada** (`[data-entrada]`) sobe título, subtítulo e pills quando a cortina sai.
-**Revelação** (`[data-revelar]`) traz cartões e títulos de categoria conforme
-entram na tela, via `IntersectionObserver`, com `--atraso` limitado a 5 posições.
-
-**Troca de categoria**: `#grade.trocando` esmaece por 200 ms, remonta e revela de novo.
-
+**Entrada** (`[data-entrada]`) e **Revelação** (`[data-revelar]` via `IntersectionObserver`).
 Tudo desligado em `prefers-reduced-motion: reduce`.
 
 ## Upload de imagens
 
-`POST /upload` usa multer, grava em `frontend/images/cardapio/`, aceita JPG, PNG,
-WebP e AVIF até 6 MB, um arquivo por vez.
+`POST /upload` usa multer, grava em `frontend/images/cardapio/`, aceita JPG/PNG/WebP/AVIF
+até 6 MB. `nomeSeguro()` tira acento/espaço/caminho e cola timestamp base36.
 
-`nomeSeguro()` tira acento, espaço e qualquer caminho do nome original, e cola um
-sufixo de timestamp em base36. `../../etc/passwd.png` vira `passwd-<hash>.jpg`.
+**O multer entrega `originalname` em latin1** — `Buffer.from(nome,"latin1").toString("utf8")`.
+No `fetch` do upload **não** defina `Content-Type` (o navegador põe o boundary).
 
-**O multer entrega `originalname` em latin1.** Sem `Buffer.from(nome, "latin1")
-.toString("utf8")`, "Café" vira "CafÃ©" e o nome sai mangled.
+## Login por estabelecimento (futuro — não implementado)
 
-No `fetch` do upload **não** defina `Content-Type`: o navegador precisa pôr o
-boundary do multipart sozinho.
+Já ajuda: `Restaurante`/`Admin`/`Categoria`/`MenuItem` têm `restauranteId`; o JWT
+carrega `restauranteId` e `usuario`; a tela de login (usuário + senha) existe.
 
-## Como verificar mudanças visuais
-
-Não confie em teste de API para julgar layout. Suba o servidor e rode:
-
-```bash
-python scripts/olhar-site.py C:/caminho/de/saida
-```
-
-Ele gera prints em 1440x900, 768x1024 e 375x812, mais o painel admin aberto, e
-reporta erros de console. Leia os PNGs antes de dizer que está pronto.
+Falta: (1) trocar `RESTAURANTE_ID = 1` por `req.admin.restauranteId` nas rotas
+autenticadas e resolver o restaurante das rotas públicas por subdomínio/slug;
+(2) checagem de posse em `PUT/DELETE /menu/:id` e `/categorias/:id`;
+(3) coluna `Admin.papel` (`"dono"` | `"super"`) + middleware `exigirSuper`;
+(4) área super-admin (criar estabelecimento + login do dono, redefinir senha);
+(5) onboarding e recuperação de senha.
 
 ## Estado atual
 
-Funcionando: cardápio com 35 itens e fotos, filtros, CRUD completo no painel,
-configuração do botão de pedido, responsivo nos três tamanhos, console limpo.
+Funcionando: 6 categorias, 28 itens com foto, filtros dinâmicos, painel em 7 abas
+(CRUD de item + ativar/desativar, CRUD + reorder de categoria, destaques, informações,
+localização com mapa, horários por dia), carrossel dos destaques, seção "Visite",
+responsivo, console limpo.
 
-Pendente:
-- Instagram, endereço, telefone, e-mail, horário e link do botão estão **vazios**
-  de propósito — o dono preenche pelo painel. Não inventar valores.
-- `npm audit` acusa 3 vulnerabilidades high. Não investigadas.
-- O `JWT_SECRET` tem fallback no código (`"sua_chave_secreta_aqui"`). Já existe um
-  segredo real no `.env`, mas o fallback deveria virar erro de inicialização.
+Pendente / de propósito:
+- Instagram, endereço, telefone, e-mail, horários e "sobre" **vazios** — o dono
+  preenche pelo painel. **Não inventar valores.**
+- Fotos dos 7 itens removidos ainda estão em `images/cardapio/` (o dono pode
+  reaproveitar Mesa/Experiência no hero/sobre).
+- `extrair-pdf.py` escreve `categoria` como string por página — desatualizado em
+  relação às categorias dinâmicas. O seed mapeia string → `categoriaId`; se re-rodar a
+  extração, conferir os nomes.

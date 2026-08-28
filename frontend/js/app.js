@@ -3,16 +3,6 @@
    JavaScript puro, sem dependências.
    =================================================================== */
 
-const CATEGORIAS = [
-  "Breakfast",
-  "Sanduíches",
-  "Doces",
-  "Vitrine",
-  "Caffès Quentes",
-  "Caffès Gelados",
-  "Bebidas Especiais",
-];
-
 const IMAGEM_RESERVA =
   "data:image/svg+xml;charset=UTF-8," +
   encodeURIComponent(
@@ -23,14 +13,28 @@ const IMAGEM_RESERVA =
      </svg>`
   );
 
-let pratos = [];
+// Estado
+let pratos = [];        // logado: todos os itens (/menu/admin); visitante: só ativos
+let categorias = [];    // [{ id, nome, ordem }] — vem do painel, define a ordem no site
 let config = {};
 let filtroAtivo = "Todos";
 let editandoId = null;
 let termoBusca = "";
+let secaoAtiva = "cardapio";
 
 const $ = (seletor) => document.querySelector(seletor);
 const $$ = (seletor) => document.querySelectorAll(seletor);
+
+const NOME_PADRAO = "Caffè 54";
+
+const DIAS = ["seg", "ter", "qua", "qui", "sex", "sab", "dom"];
+const DIAS_LONGO = {
+  seg: "Segunda", ter: "Terça", qua: "Quarta", qui: "Quinta",
+  sex: "Sexta", sab: "Sábado", dom: "Domingo",
+};
+const DIAS_CURTO = {
+  seg: "Seg", ter: "Ter", qua: "Qua", qui: "Qui", sex: "Sex", sab: "Sáb", dom: "Dom",
+};
 
 /* ===================================================================
    Utilidades
@@ -62,6 +66,35 @@ function notificar(mensagem, tipo = "sucesso") {
 
 const pegarToken = () => localStorage.getItem(CONFIG.chaveToken);
 
+// Junta os 7 dias em linhas curtas, agrupando dias seguidos com o mesmo horário.
+// Ex.: "Seg a Sex: 08:00–18:00 \n Sáb: 09:00–13:00 \n Dom: fechado"
+function formatarHorarios(lista) {
+  if (!Array.isArray(lista) || !lista.length) return "";
+  const mapa = {};
+  lista.forEach((h) => { if (h && DIAS.includes(h.dia)) mapa[h.dia] = h; });
+
+  const textoDe = (h) =>
+    !h || h.fechado || !h.abre || !h.fecha ? "fechado" : `${h.abre}–${h.fecha}`;
+
+  const grupos = [];
+  for (const dia of DIAS) {
+    const t = textoDe(mapa[dia]);
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.texto === t) ultimo.fim = dia;
+    else grupos.push({ ini: dia, fim: dia, texto: t });
+  }
+  if (grupos.every((g) => g.texto === "fechado")) return "";
+
+  return grupos
+    .map((g) => {
+      const dias = g.ini === g.fim
+        ? DIAS_CURTO[g.ini]
+        : `${DIAS_CURTO[g.ini]} a ${DIAS_CURTO[g.fim]}`;
+      return `${dias}: ${g.texto === "fechado" ? "fechado" : g.texto}`;
+    })
+    .join("\n");
+}
+
 /* ---------- chamadas à API ---------- */
 
 async function api(caminho, opcoes = {}) {
@@ -85,74 +118,45 @@ async function api(caminho, opcoes = {}) {
 }
 
 /* ===================================================================
-   Configuração do site (link do botão, contato, textos)
+   Configuração do site (nome, contato, sobre, horários)
    =================================================================== */
 
-// Para onde o botão "Pedir" leva. Quem define é o admin, em /config.
-// Enquanto não houver link cadastrado, o botão simplesmente não aparece.
-function destinoDoPedido() {
-  return config.linkPedido || "";
-}
-
 function aplicarConfig() {
-  const destino = destinoDoPedido();
-  const rotulo = config.textoBotao || "Pedir";
+  $$("[data-nome-cafe]").forEach((el) => { el.textContent = config.nome || NOME_PADRAO; });
+  $$("[data-ano]").forEach((el) => { el.textContent = new Date().getFullYear(); });
 
-  $$("[data-link-pedido]").forEach((elemento) => {
-    if (destino) {
-      elemento.href = destino;
-      elemento.hidden = false;
-    } else {
-      elemento.hidden = true;
-    }
-  });
-
-  $$("[data-texto-botao]").forEach((elemento) => { elemento.textContent = rotulo; });
-  $$("[data-nome-cafe]").forEach((elemento) => { elemento.textContent = config.nome || "Caffè 54"; });
-  $$("[data-descricao-cafe]").forEach((elemento) => {
-    elemento.textContent = config.descricao || "Sofisticação Italiana";
-  });
-
-  // rodapé
-  $$("[data-horario]").forEach((el) => { el.textContent = config.horario || ""; });
+  const horarioTexto = formatarHorarios(config.horarios);
+  $$("[data-horario]").forEach((el) => { el.textContent = horarioTexto; });
   $$("[data-endereco]").forEach((el) => { el.textContent = config.endereco || ""; });
 
-  $$("[data-telefone]").forEach((elemento) => {
-    elemento.textContent = config.telefone || "";
-    elemento.href = config.telefone ? `tel:+55${config.telefone.replace(/\D/g, "")}` : "#";
-    elemento.hidden = !config.telefone;
+  $$("[data-telefone]").forEach((el) => {
+    el.textContent = config.telefone || "";
+    el.href = config.telefone ? `tel:+55${config.telefone.replace(/\D/g, "")}` : "#";
+    el.hidden = !config.telefone;
   });
 
-  $$("[data-email]").forEach((elemento) => {
-    elemento.textContent = config.email || "";
-    elemento.href = config.email ? `mailto:${config.email}` : "#";
-    elemento.hidden = !config.email;
+  $$("[data-email]").forEach((el) => {
+    el.textContent = config.email || "";
+    el.href = config.email ? `mailto:${config.email}` : "#";
+    el.hidden = !config.email;
   });
 
   const perfil = config.instagram
     ? { url: `https://instagram.com/${config.instagram}`, arroba: `@${config.instagram}` }
     : null;
-
-  $$("[data-instagram]").forEach((elemento) => {
-    elemento.href = perfil ? perfil.url : "#";
-    elemento.hidden = !perfil;
+  $$("[data-instagram]").forEach((el) => {
+    el.href = perfil ? perfil.url : "#";
+    el.hidden = !perfil;
   });
-  $$("[data-instagram-usuario]").forEach((elemento) => {
-    elemento.textContent = perfil ? perfil.arroba : "";
+  $$("[data-instagram-usuario]").forEach((el) => {
+    el.textContent = perfil ? perfil.arroba : "";
   });
 
-  $$("[data-nota-pedido]").forEach((elemento) => {
-    elemento.textContent = destino ? `Pedidos pelo botão "${rotulo}".` : "";
-  });
-  const faixa = document.querySelector(".rodape-base");
-  if (faixa) faixa.hidden = !destino;
-
-  // sem nenhum dado de contato o rodapé vira só a assinatura, centralizada
+  // sem nenhum dado de contato, o rodapé vira só a assinatura, centralizada
   const semContato = !(config.endereco || config.telefone || config.email ||
-                       config.instagram || config.horario);
+                       config.instagram || horarioTexto);
   document.querySelector(".rodape").classList.toggle("rodape-so-marca", semContato);
 
-  // esconde os blocos do rodapé que não têm conteúdo
   const preenchido = {
     endereco: Boolean(config.endereco),
     contato: Boolean(config.telefone || config.email),
@@ -163,12 +167,51 @@ function aplicarConfig() {
     if (alvo) alvo.hidden = !tem;
   }
 
-  // preenche o formulário de configuração do painel
-  const formulario = $("#formulario-config");
-  for (const campo of ["linkPedido", "textoBotao", "nome", "descricao",
-                       "instagram", "endereco", "telefone", "email", "horario"]) {
-    if (formulario.elements[campo]) formulario.elements[campo].value = config[campo] || "";
+  aplicarSobre();
+  aplicarVisite(horarioTexto);
+  preencherFormulariosConfig();
+}
+
+// "Sobre o estabelecimento" — logo depois da capa. Vazio = seção escondida.
+function aplicarSobre() {
+  const sobre = (config.sobre || "").trim();
+  $$("[data-sobre]").forEach((el) => { el.textContent = sobre; });
+  const secao = $("#sobre");
+  if (secao) secao.hidden = !sobre;
+}
+
+// Faixa compacta de localização + horário, logo depois da capa. Cada parte
+// só aparece se o dono preencheu; vazia = faixa escondida.
+function aplicarVisite(horarioTexto) {
+  const secao = $("#visite");
+  if (!secao) return;
+
+  const endereco = (config.endereco || "").trim();
+
+  secao.querySelector('[data-dado="endereco"]').hidden = !endereco;
+  secao.querySelector('[data-dado="horario"]').hidden = !horarioTexto;
+
+  const mapaLink = secao.querySelector("[data-mapa-link]");
+  if (endereco) {
+    mapaLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`;
   }
+
+  secao.hidden = !(endereco || horarioTexto);
+}
+
+// Espelha os valores salvos nos formulários do painel.
+function preencherFormulariosConfig() {
+  const info = $("#formulario-info");
+  if (info) {
+    for (const campo of ["sobre", "instagram", "telefone", "email"]) {
+      if (info.elements[campo]) info.elements[campo].value = config[campo] || "";
+    }
+  }
+  const local = $("#formulario-local");
+  if (local && local.elements.endereco) local.elements.endereco.value = config.endereco || "";
+
+  atualizarPreviaMapa();
+  montarHorarios();
 }
 
 async function carregarConfig() {
@@ -180,20 +223,24 @@ async function carregarConfig() {
   aplicarConfig();
 }
 
+async function carregarCategorias() {
+  try {
+    categorias = await api("/categorias");
+  } catch {
+    categorias = [];
+  }
+}
+
 /* ===================================================================
-   Cardápio
+   Cardápio (site público)
    =================================================================== */
 
-// Ordena na sequência das categorias do menu (Breakfast primeiro),
-// com os destaques no topo de cada categoria.
+// Ordena na sequência das categorias do painel, com os destaques no topo
+// de cada categoria (fotos boas primeiro).
 function ordenarPratos(lista) {
-  const posicao = (categoria) => {
-    const indice = CATEGORIAS.indexOf(categoria);
-    return indice === -1 ? CATEGORIAS.length : indice;
-  };
   return [...lista].sort(
     (a, b) =>
-      posicao(a.categoria) - posicao(b.categoria) ||
+      (a.categoriaOrdem ?? 999) - (b.categoriaOrdem ?? 999) ||
       Number(b.destaque) - Number(a.destaque) ||
       a.nome.localeCompare(b.nome, "pt-BR")
   );
@@ -202,13 +249,13 @@ function ordenarPratos(lista) {
 async function carregarCardapio() {
   if (!pratos.length) esqueleto();
   try {
-    pratos = ordenarPratos(await api("/menu"));
+    const rota = pegarToken() ? "/menu/admin" : "/menu";
+    pratos = ordenarPratos(await api(rota));
     $("#aviso").hidden = true;
     montarFiltros();
     montarGrade();
-    montarListaImagens();
     montarCapa();
-    if (pegarToken()) montarListaAdmin();
+    if (pegarToken()) atualizarPainel();
   } catch (erro) {
     $("#aviso").hidden = false;
     $("#aviso").textContent =
@@ -216,12 +263,16 @@ async function carregarCardapio() {
   }
 }
 
-const NOME_PADRAO = "Caffè 54";
+// itens que aparecem no site (o painel enxerga os inativos também)
+const pratosVisiveis = () => pratos.filter((p) => p.ativo !== false);
+
 let primeiraMontagem = true;
 
 function montarFiltros() {
-  const presentes = new Set(pratos.map((prato) => prato.categoria));
-  const lista = ["Todos", ...CATEGORIAS.filter((categoria) => presentes.has(categoria))];
+  const presentes = new Set(pratosVisiveis().map((p) => p.categoria));
+  const lista = ["Todos", ...categorias.filter((c) => presentes.has(c.nome)).map((c) => c.nome)];
+
+  if (!lista.includes(filtroAtivo)) filtroAtivo = "Todos";
 
   $("#filtros").innerHTML = lista
     .map(
@@ -240,10 +291,9 @@ function montarFiltros() {
 }
 
 function montarGrade() {
+  const base = pratosVisiveis();
   const visiveis =
-    filtroAtivo === "Todos"
-      ? pratos
-      : pratos.filter((prato) => prato.categoria === filtroAtivo);
+    filtroAtivo === "Todos" ? base : base.filter((p) => p.categoria === filtroAtivo);
 
   if (!visiveis.length) {
     $("#grade").innerHTML = "";
@@ -251,21 +301,17 @@ function montarGrade() {
     $("#aviso").textContent = "Nenhum item nesta categoria por enquanto.";
     return;
   }
-
   $("#aviso").hidden = true;
 
-  // Em "Todos" o cardápio é dividido por categoria, com título em cada bloco.
-  // Filtrando uma categoria só, o título seria redundante com a pill ativa.
   if (filtroAtivo !== "Todos") {
     $("#grade").innerHTML = `<div class="grade">${visiveis.map(cartaoHTML).join("")}</div>`;
     revelarNovos();
     return;
   }
 
-  const grupos = CATEGORIAS.map((categoria) => [
-    categoria,
-    visiveis.filter((prato) => prato.categoria === categoria),
-  ]).filter(([, itens]) => itens.length);
+  const grupos = categorias
+    .map((c) => [c.nome, visiveis.filter((p) => p.categoria === c.nome)])
+    .filter(([, itens]) => itens.length);
 
   $("#grade").innerHTML = grupos
     .map(
@@ -299,19 +345,12 @@ function esqueleto() {
 
 function cartaoHTML(prato) {
   const semPreco = !prato.preco || Number(prato.preco) <= 0;
-  const destino = destinoDoPedido();
-  const rotulo = escapar(config.textoBotao || "Pedir");
 
   const figura = prato.imagem
     ? `<img src="${CONFIG.pastaImagens}${escapar(prato.imagem)}"
             alt="${escapar(prato.nome)}" loading="lazy" decoding="async"
             onerror="this.onerror=null;this.src='${IMAGEM_RESERVA}'">`
     : `<div class="cartao-vazio">${inicial(prato.nome)}</div>`;
-
-  const botao = destino
-    ? `<a class="botao botao-ouro-leve botao-largo" href="${escapar(destino)}"
-           target="_blank" rel="noopener">${rotulo}</a>`
-    : "";
 
   return `
     <article class="cartao" data-revelar>
@@ -324,11 +363,10 @@ function cartaoHTML(prato) {
         </span>
       </button>
       <div class="cartao-corpo">
-        <span class="cartao-categoria">${escapar(prato.categoria)}</span>
+        <span class="cartao-categoria">${escapar(prato.categoria || "")}</span>
         <h3 class="cartao-nome">${escapar(prato.nome)}</h3>
         <p class="cartao-descricao">${escapar(prato.descricao || "")}</p>
         <p class="cartao-preco ${semPreco ? "consulta" : ""}">${formatarPreco(prato.preco)}</p>
-        ${botao}
       </div>
     </article>`;
 }
@@ -349,11 +387,10 @@ function abrirLupa(id) {
     imagem.hidden = true;
   }
 
-  $("#lupa-categoria").textContent = prato.categoria;
+  $("#lupa-categoria").textContent = prato.categoria || "";
   $("#lupa-nome").textContent = prato.nome;
   $("#lupa-descricao").textContent = prato.descricao || "";
   $("#lupa-preco").textContent = formatarPreco(prato.preco);
-  $("#lupa-pedir").hidden = !destinoDoPedido();
 
   $("#lupa").showModal();
 }
@@ -366,39 +403,94 @@ function estaLogado() {
   return Boolean(pegarToken());
 }
 
+let fechandoPainel = null;
+
+// põe a origem do círculo (--ox/--oy) no centro de um elemento
+function origemDoCirculo(elemento) {
+  const admin = $("#admin");
+  const r = elemento.getBoundingClientRect();
+  admin.style.setProperty("--ox", `${r.left + r.width / 2}px`);
+  admin.style.setProperty("--oy", `${r.top + r.height / 2}px`);
+}
+
+// O painel abre como uma "outra página": um círculo cresce a partir do
+// botão da engrenagem e toma a tela toda. Ao fechar, o círculo recolhe
+// para dentro do "x".
 function abrirPainel() {
-  $("#sobreposicao").hidden = false;
-  $("#admin").hidden = false;
+  const admin = $("#admin");
+  clearTimeout(fechandoPainel);
+  admin.classList.remove("painel-saindo");
+
+  origemDoCirculo($("#gatilho-admin"));
+
+  admin.hidden = false;
   document.body.style.overflow = "hidden";
+  admin.classList.remove("painel-entrando");
+  void admin.offsetWidth;
+  admin.classList.add("painel-entrando");
+
   mostrarPainel(estaLogado());
-  (estaLogado() ? $("#busca") : $("#login-email")).focus();
+  (estaLogado() ? $(`.admin-nav-item[data-secao="${secaoAtiva}"]`) : $("#login-usuario")).focus();
 }
 
 function fecharPainel() {
-  $("#sobreposicao").hidden = true;
-  $("#admin").hidden = true;
+  const admin = $("#admin");
+  origemDoCirculo($("#admin-fechar"));   // recolhe para o "x"
+  admin.classList.remove("painel-entrando");
+  admin.classList.add("painel-saindo");
   document.body.style.overflow = "";
   $("#gatilho-admin").focus();
+  clearTimeout(fechandoPainel);
+  fechandoPainel = setTimeout(() => {
+    admin.hidden = true;
+    admin.classList.remove("painel-saindo");
+  }, semMovimento ? 0 : 800);
 }
 
 function mostrarPainel(logado) {
   $("#formulario-login").hidden = logado;
   $("#dashboard").hidden = !logado;
   $("#admin-titulo").textContent = logado ? "Painel" : "Acesso restrito";
-  if (logado) montarListaAdmin();
+  if (logado) {
+    $("#conta-email").textContent = localStorage.getItem(CONFIG.chaveUsuario) || "";
+    trocarSecao(secaoAtiva);
+    atualizarPainel();
+  }
+}
+
+function trocarSecao(nome) {
+  secaoAtiva = nome;
+  $$(".admin-nav-item").forEach((b) =>
+    b.setAttribute("aria-current", b.dataset.secao === nome ? "page" : "false"));
+  $$(".painel-secao").forEach((s) => { s.hidden = s.dataset.secao !== nome; });
+  const conteudo = $(".admin-conteudo");
+  if (conteudo) conteudo.scrollTop = 0;
+}
+
+// repovoa todas as seções do painel a partir do estado atual
+function atualizarPainel() {
+  montarSeletores();
+  montarListaAdmin();
+  montarListaImagens();
+  montarCategoriasAdmin();
+  montarDestaques();
+  montarHorarios();
+  atualizarPreviaMapa();
 }
 
 function sair() {
   localStorage.removeItem(CONFIG.chaveToken);
-  localStorage.removeItem(CONFIG.chaveEmail);
+  localStorage.removeItem(CONFIG.chaveUsuario);
   editandoId = null;
   mostrarPainel(false);
 }
 
+/* ---------- categorias ---------- */
+
 function montarSeletores() {
-  const opcoes = CATEGORIAS.map(
-    (categoria) => `<option value="${escapar(categoria)}">${escapar(categoria)}</option>`
-  ).join("");
+  const opcoes = categorias
+    .map((c) => `<option value="${c.id}">${escapar(c.nome)}</option>`)
+    .join("");
 
   $$(".seletor-categoria").forEach((seletor) => {
     const atual = seletor.dataset.valor || "";
@@ -408,10 +500,237 @@ function montarSeletores() {
   });
 }
 
+function montarCategoriasAdmin() {
+  const lista = $("#lista-categorias");
+  if (!lista) return;
+
+  const contagem = {};
+  pratos.forEach((p) => { contagem[p.categoria] = (contagem[p.categoria] || 0) + 1; });
+
+  lista.innerHTML = categorias
+    .map((c, i) => {
+      const n = contagem[c.nome] || 0;
+      return `
+      <li class="categoria-linha" data-id="${c.id}">
+        <div class="categoria-mover">
+          <button type="button" class="mini-btn" data-mover="cima" aria-label="Subir"
+                  ${i === 0 ? "disabled" : ""}>↑</button>
+          <button type="button" class="mini-btn" data-mover="baixo" aria-label="Descer"
+                  ${i === categorias.length - 1 ? "disabled" : ""}>↓</button>
+        </div>
+        <input type="text" class="categoria-nome" value="${escapar(c.nome)}" maxlength="40"
+               aria-label="Nome da categoria">
+        <span class="categoria-contagem">${n} ${n === 1 ? "item" : "itens"}</span>
+        <button type="button" class="acao acao-remover" data-excluir="${c.id}"
+                ${n > 0 ? 'disabled title="Mova os itens desta categoria antes de excluir"' : ""}>
+          Excluir
+        </button>
+      </li>`;
+    })
+    .join("");
+}
+
+async function salvarNomeCategoria(id, nome) {
+  nome = nome.trim();
+  const atual = categorias.find((c) => c.id === Number(id));
+  if (!nome || !atual || nome === atual.nome) {
+    montarCategoriasAdmin();
+    return;
+  }
+  try {
+    await api(`/categorias/${id}`, { method: "PUT", body: JSON.stringify({ nome }) });
+    await carregarCategorias();
+    await carregarCardapio();
+    notificar("Categoria renomeada.");
+  } catch (erro) {
+    notificar(erro.message, "erro");
+    montarCategoriasAdmin();
+  }
+}
+
+// Re-renderiza uma lista animando cada linha da posição antiga para a nova
+// (técnica FLIP). `mutar()` troca os dados e chama o montar*.
+function animarReordenacao(container, mutar, idDestaque) {
+  if (semMovimento || !container) { mutar(); return; }
+
+  const antes = new Map(
+    [...container.children].map((el) => [el.dataset.id, el.getBoundingClientRect().top])
+  );
+  mutar();
+
+  for (const el of container.children) {
+    const y0 = antes.get(el.dataset.id);
+    if (y0 == null) continue;
+    const dy = y0 - el.getBoundingClientRect().top;
+    if (el.dataset.id === String(idDestaque)) el.classList.add("linha-movida");
+    if (!dy) continue;
+    el.style.transform = `translateY(${dy}px)`;
+    el.style.transition = "none";
+    requestAnimationFrame(() => {
+      el.style.transition = "transform 280ms var(--mola)";
+      el.style.transform = "";
+      el.addEventListener("transitionend", () => {
+        el.style.transition = "";
+        el.classList.remove("linha-movida");
+      }, { once: true });
+    });
+  }
+}
+
+async function moverCategoria(id, direcao) {
+  const i = categorias.findIndex((c) => c.id === Number(id));
+  const j = direcao === "cima" ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= categorias.length) return;
+
+  animarReordenacao($("#lista-categorias"), () => {
+    const nova = [...categorias];
+    [nova[i], nova[j]] = [nova[j], nova[i]];
+    categorias = nova;
+    montarCategoriasAdmin();
+  }, id);
+
+  // ajusta o estado local para o site refletir a nova ordem
+  categorias.forEach((c, k) => { c.ordem = k; });
+  pratos.forEach((p) => {
+    const c = categorias.find((x) => x.nome === p.categoria);
+    if (c) p.categoriaOrdem = c.ordem;
+  });
+  montarGrade();
+
+  try {
+    await api("/categorias/ordenar", {
+      method: "PUT",
+      body: JSON.stringify({ ids: categorias.map((c) => c.id) }),
+    });
+  } catch (erro) {
+    notificar(erro.message, "erro");
+    await carregarCategorias();
+    await carregarCardapio();
+  }
+}
+
+async function excluirCategoria(id) {
+  const cat = categorias.find((c) => c.id === Number(id));
+  if (!cat || !confirm(`Excluir a categoria "${cat.nome}"?`)) return;
+  try {
+    await api(`/categorias/${id}`, { method: "DELETE" });
+    await carregarCategorias();
+    await carregarCardapio();
+    notificar("Categoria excluída.");
+  } catch (erro) {
+    notificar(erro.message, "erro");
+  }
+}
+
+/* ---------- destaques ---------- */
+
+function montarDestaques() {
+  const lista = $("#lista-destaques");
+  if (!lista) return;
+
+  const ordenados = [...pratos].sort(
+    (a, b) =>
+      (a.categoriaOrdem ?? 999) - (b.categoriaOrdem ?? 999) ||
+      a.nome.localeCompare(b.nome, "pt-BR")
+  );
+
+  lista.innerHTML = ordenados
+    .map((p) => {
+      const thumb = p.imagem
+        ? `<img class="destaque-thumb" src="${CONFIG.pastaImagens}${escapar(p.imagem)}" alt=""
+               onerror="this.onerror=null;this.src='${IMAGEM_RESERVA}'">`
+        : `<span class="destaque-thumb destaque-thumb-vazia">${inicial(p.nome)}</span>`;
+      return `
+      <li class="destaque-item">
+        <label class="destaque-rotulo">
+          <input type="checkbox" data-destaque="${p.id}" ${p.destaque ? "checked" : ""}>
+          ${thumb}
+          <span class="destaque-info">
+            <strong>${escapar(p.nome)}</strong>
+            <small>${escapar(p.categoria || "")}${p.ativo === false ? " · inativo" : ""}</small>
+          </span>
+        </label>
+      </li>`;
+    })
+    .join("");
+}
+
+async function alternarDestaque(id, valor) {
+  try {
+    await api(`/menu/${id}`, { method: "PUT", body: JSON.stringify({ destaque: valor }) });
+    const p = pratos.find((x) => x.id === Number(id));
+    if (p) p.destaque = valor;
+    montarGrade();
+    montarCapa();
+  } catch (erro) {
+    notificar(erro.message, "erro");
+    montarDestaques();
+  }
+}
+
+/* ---------- horários ---------- */
+
+function montarHorarios() {
+  const grade = $("#horarios-grade");
+  if (!grade) return;
+
+  const salvos = {};
+  (Array.isArray(config.horarios) ? config.horarios : []).forEach((h) => {
+    if (h && DIAS.includes(h.dia)) salvos[h.dia] = h;
+  });
+
+  grade.innerHTML = DIAS.map((dia) => {
+    const h = salvos[dia] || {};
+    const fechado = Boolean(h.fechado);
+    return `
+      <div class="horario-linha ${fechado ? "fechado" : ""}" data-dia="${dia}">
+        <span class="horario-dia">${DIAS_LONGO[dia]}</span>
+        <span class="horario-campos">
+          <input type="time" data-campo="abre" aria-label="Abre" value="${escapar(h.abre || "")}" ${fechado ? "disabled" : ""}>
+          <span class="horario-ate">até</span>
+          <input type="time" data-campo="fecha" aria-label="Fecha" value="${escapar(h.fecha || "")}" ${fechado ? "disabled" : ""}>
+        </span>
+        <span class="horario-fechado-txt">Fechado neste dia</span>
+        <label class="horario-fechado">
+          <input type="checkbox" data-campo="fechado" ${fechado ? "checked" : ""}> Fechado
+        </label>
+      </div>`;
+  }).join("");
+}
+
+function lerHorarios() {
+  return [...$$("#horarios-grade .horario-linha")].map((linha) => ({
+    dia: linha.dataset.dia,
+    abre: linha.querySelector('[data-campo="abre"]').value,
+    fecha: linha.querySelector('[data-campo="fecha"]').value,
+    fechado: linha.querySelector('[data-campo="fechado"]').checked,
+  }));
+}
+
+// copia o horário de segunda-feira para os outros seis dias
+function replicarSegunda() {
+  const linhas = [...$$("#horarios-grade .horario-linha")];
+  const base = linhas[0];
+  if (!base) return;
+  const abre = base.querySelector('[data-campo="abre"]').value;
+  const fecha = base.querySelector('[data-campo="fecha"]').value;
+  const fechado = base.querySelector('[data-campo="fechado"]').checked;
+
+  linhas.slice(1).forEach((linha) => {
+    linha.querySelector('[data-campo="abre"]').value = abre;
+    linha.querySelector('[data-campo="fecha"]').value = fecha;
+    const chk = linha.querySelector('[data-campo="fechado"]');
+    chk.checked = fechado;
+    linha.classList.toggle("fechado", fechado);
+    linha.querySelectorAll('[data-campo="abre"], [data-campo="fecha"]').forEach((i) => { i.disabled = fechado; });
+  });
+  notificar("Segunda-feira aplicada aos outros dias. Ajuste o que precisar e salve.");
+}
+
+/* ---------- lista de imagens ---------- */
+
 async function montarListaImagens() {
-  // logado, pergunta a pasta inteira: assim as fotos recém-enviadas
-  // aparecem mesmo antes de estarem ligadas a algum item
-  let nomes = [...new Set(pratos.map((prato) => prato.imagem).filter(Boolean))];
+  let nomes = [...new Set(pratos.map((p) => p.imagem).filter(Boolean))];
   if (pegarToken()) {
     try {
       nomes = await api("/imagens");
@@ -425,19 +744,21 @@ async function montarListaImagens() {
     .join("");
 }
 
+/* ---------- lista de itens ---------- */
+
 function montarListaAdmin() {
   const termo = termoBusca.trim().toLowerCase();
   const visiveis = termo
     ? pratos.filter(
-        (prato) =>
-          prato.nome.toLowerCase().includes(termo) ||
-          prato.categoria.toLowerCase().includes(termo)
+        (p) =>
+          p.nome.toLowerCase().includes(termo) ||
+          (p.categoria || "").toLowerCase().includes(termo)
       )
     : pratos;
 
   $("#contagem").textContent = termo
     ? `${visiveis.length} de ${pratos.length}`
-    : `${pratos.length} itens`;
+    : `${pratos.length} ${pratos.length === 1 ? "item" : "itens"}`;
 
   $("#lista").innerHTML = visiveis.map(itemAdminHTML).join("");
   $("#lista-vazia").hidden = visiveis.length > 0;
@@ -445,6 +766,7 @@ function montarListaAdmin() {
 }
 
 function itemAdminHTML(prato) {
+  const inativo = prato.ativo === false;
   const miniatura = prato.imagem
     ? `<img src="${CONFIG.pastaImagens}${escapar(prato.imagem)}" alt=""
             class="item-miniatura" loading="lazy"
@@ -452,18 +774,23 @@ function itemAdminHTML(prato) {
     : `<div class="item-miniatura miniatura-vazia">${inicial(prato.nome)}</div>`;
 
   return `
-    <li class="item" data-id="${prato.id}">
+    <li class="item ${inativo ? "item--inativo" : ""}" data-id="${prato.id}">
       <div class="item-linha">
         ${miniatura}
         <div class="item-info">
           <span class="item-nome">
-            ${escapar(prato.nome)}${prato.destaque ? ` <span class="item-estrela">&#9733;</span>` : ""}
+            ${escapar(prato.nome)}
+            ${prato.destaque ? ` <span class="item-estrela" title="Destaque">&#9733;</span>` : ""}
+            ${inativo ? ` <span class="item-tag">inativo</span>` : ""}
           </span>
-          <span class="item-detalhe">${escapar(prato.categoria)} · ${formatarPreco(prato.preco)}</span>
+          <span class="item-detalhe">${escapar(prato.categoria || "sem categoria")} · ${formatarPreco(prato.preco)}</span>
         </div>
         <div class="item-acoes">
+          <button type="button" class="acao acao-ativo" data-ativo="${prato.id}">
+            ${inativo ? "Ativar" : "Desativar"}
+          </button>
           <button type="button" class="acao acao-editar" data-id="${prato.id}">Editar</button>
-          <button type="button" class="acao acao-remover" data-id="${prato.id}">Deletar</button>
+          <button type="button" class="acao acao-remover" data-remover="${prato.id}">Excluir</button>
         </div>
       </div>
       ${editandoId === prato.id ? editorHTML(prato) : ""}
@@ -502,8 +829,8 @@ function editorHTML(prato) {
         </label>
         <label class="campo">
           <span>Categoria <em>*</em></span>
-          <select name="categoria" class="seletor-categoria"
-                  data-valor="${escapar(prato.categoria)}" required></select>
+          <select name="categoriaId" class="seletor-categoria"
+                  data-valor="${prato.categoriaId || ""}" required></select>
         </label>
       </div>
       <div class="campo-imagem">
@@ -528,8 +855,8 @@ function editorHTML(prato) {
         <span>Marcar como destaque</span>
       </label>
       <label class="marcador">
-        <input type="checkbox" name="carrossel" ${prato.carrossel ? "checked" : ""}>
-        <span>Mostrar no carrossel da capa</span>
+        <input type="checkbox" name="ativo" ${prato.ativo === false ? "" : "checked"}>
+        <span>Ativo <small>(aparece no site)</small></span>
       </label>
 
       <div class="editor-acoes">
@@ -539,21 +866,19 @@ function editorHTML(prato) {
     </form>`;
 }
 
-/* ---------- validação de formulário ---------- */
+/* ---------- validação ---------- */
 
 function validarItem(dados) {
   if (!dados.nome.trim()) return "Informe o nome do item.";
   if (!dados.descricao.trim()) return "Informe a descrição do item.";
   if (dados.preco === "" || Number.isNaN(Number(dados.preco))) return "Informe um preço válido.";
   if (Number(dados.preco) < 0) return "O preço não pode ser negativo.";
-  if (!dados.categoria) return "Escolha uma categoria.";
+  if (!dados.categoriaId) return "Escolha uma categoria.";
   return null;
 }
 
 /* ===================================================================
-   Carrossel da capa
-   As fotos são as dos itens marcados no painel. Sem nenhum marcado,
-   cai nos destaques; sem destaques, fica a foto fixa do hero.
+   Carrossel da capa — usa os itens marcados como destaque
    =================================================================== */
 
 const SEGUNDOS_CAPA = 5.5;
@@ -563,9 +888,7 @@ let slideAtual = 0;
 let relogioCapa = null;
 
 function pratosDaCapa() {
-  const marcados = pratos.filter((prato) => prato.carrossel && prato.imagem);
-  if (marcados.length) return marcados;
-  return pratos.filter((prato) => prato.destaque && prato.imagem);
+  return pratosVisiveis().filter((p) => p.destaque && p.imagem);
 }
 
 function montarCapa() {
@@ -576,11 +899,10 @@ function montarCapa() {
     $("#hero-prato").hidden = true;
     $("#hero-controles").hidden = true;
     $("#hero-vitrine").hidden = true;
+    desligarRelogio();
     return;
   }
 
-  // a foto só recebe src quando chega a vez dela: 7 imagens de uma vez
-  // atrasariam a primeira pintura sem necessidade
   caixa.innerHTML = slides
     .map(
       (prato, i) => `
@@ -602,6 +924,7 @@ function montarCapa() {
 
   $("#hero-vitrine").hidden = false;
 
+  $("#hero-pontos").style.setProperty("--cap-dur", SEGUNDOS_CAPA + "s");
   $("#hero-pontos").innerHTML = slides
     .map(
       (prato, i) => `
@@ -633,7 +956,7 @@ function escreverPrato(prato) {
   const caixa = $("#hero-prato");
   caixa.classList.add("trocando");
   setTimeout(() => {
-    $("#hero-prato-categoria").textContent = prato.categoria;
+    $("#hero-prato-categoria").textContent = prato.categoria || "";
     $("#hero-prato-nome").textContent = prato.nome;
     $("#hero-prato-preco").textContent = formatarPreco(prato.preco);
     caixa.classList.remove("trocando");
@@ -659,15 +982,30 @@ function irParaSlide(indice) {
   escreverPrato(slides[destino]);
 }
 
+// reinicia a animação da barrinha do zero, para ela ficar em sincronia
+// com o timer que acabou de ser (re)ligado
+function reiniciarProgresso() {
+  const ativo = $('.hero-ponto[aria-selected="true"]');
+  if (!ativo) return;
+  ativo.setAttribute("aria-selected", "false");
+  void ativo.offsetWidth;
+  ativo.setAttribute("aria-selected", "true");
+}
+
 function ligarRelogio() {
   desligarRelogio();
   if (semMovimento) return;
+  const pontos = $("#hero-pontos");
+  if (pontos) pontos.classList.remove("pausado");
+  reiniciarProgresso();
   relogioCapa = setInterval(() => irParaSlide(slideAtual + 1), SEGUNDOS_CAPA * 1000);
 }
 
 function desligarRelogio() {
   if (relogioCapa) clearInterval(relogioCapa);
   relogioCapa = null;
+  const pontos = $("#hero-pontos");
+  if (pontos) pontos.classList.add("pausado");   // congela a barrinha
 }
 
 /* ===================================================================
@@ -677,8 +1015,9 @@ function desligarRelogio() {
 const semMovimento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 let observador = null;
 
-// A cortina fica em cena por ~2s e depois se abre. Uma vez por sessão:
-// quem volta pela navegação não assiste de novo.
+// Abertura: as duas metades do nome se encontram no meio enquanto um anel
+// dourado se desenha ao redor; depois o círculo "se abre" (máscara radial)
+// e revela o site. Uma vez por sessão.
 function iniciarAbertura() {
   const abertura = $("#abertura");
   const raiz = document.documentElement;
@@ -689,23 +1028,15 @@ function iniciarAbertura() {
     return;
   }
 
-  // nome letra a letra. Usa o padrão e não o /config: o filete já começou
-  // a animar no primeiro quadro e esperar a API dessincroniza a escada.
-  $("#abertura-nome").innerHTML = [...NOME_PADRAO]
-    .map((letra, i) =>
-      `<span style="--i: ${i}">${letra === " " ? "&nbsp;" : escapar(letra)}</span>`)
-    .join("");
-
   setTimeout(() => {
     abertura.classList.add("saindo");
     raiz.classList.remove("abertura-ativa");
     try { sessionStorage.setItem("caffe54:abertura", "1"); } catch {}
     liberarEntrada();
-    setTimeout(() => abertura.remove(), 950);
-  }, 2000);
+    setTimeout(() => abertura.remove(), 850);
+  }, 1900);
 }
 
-// dispara a subida do título, do subtítulo e das pills
 function liberarEntrada() {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
@@ -735,7 +1066,6 @@ function revelarNovos() {
     );
   }
 
-  // escada de atraso dentro de cada grade, limitada para o fim não arrastar
   alvos.forEach((alvo) => {
     const irmaos = alvo.parentElement ? [...alvo.parentElement.children] : [];
     const posicao = irmaos.indexOf(alvo);
@@ -744,7 +1074,6 @@ function revelarNovos() {
   });
 }
 
-// troca de categoria: some, remonta, volta com a escada
 function trocarCategoria(categoria) {
   filtroAtivo = categoria;
   montarFiltros();
@@ -754,7 +1083,6 @@ function trocarCategoria(categoria) {
     montarGrade();
     return;
   }
-
   grade.classList.add("trocando");
   setTimeout(() => {
     montarGrade();
@@ -764,8 +1092,6 @@ function trocarCategoria(categoria) {
 
 /* ===================================================================
    Envio de imagem
-   O admin escolhe um arquivo, ele sobe para frontend/images/cardapio/
-   e o nome devolvido pela API preenche o campo de texto.
    =================================================================== */
 
 const LIMITE_MB = 6;
@@ -799,7 +1125,7 @@ async function enviarImagem(entrada) {
     const resposta = await fetch(`${CONFIG.api}/upload`, {
       method: "POST",
       headers: { Authorization: `Bearer ${pegarToken()}` },
-      body: pacote,   // sem Content-Type: o navegador põe o boundary
+      body: pacote,
     });
 
     const corpo = await resposta.json().catch(() => ({}));
@@ -817,7 +1143,6 @@ async function enviarImagem(entrada) {
   }
 }
 
-// a prévia acompanha o que for digitado ou escolhido na lista
 function acompanharPrevia(campo) {
   const bloco = campo.closest(".campo-imagem");
   if (!bloco) return;
@@ -827,37 +1152,53 @@ function acompanharPrevia(campo) {
   if (nome) previa.querySelector("img").src = CONFIG.pastaImagens + nome;
 }
 
+/* ---------- prévia do mapa no painel ---------- */
+
+function atualizarPreviaMapa() {
+  const previa = $("#local-previa");
+  if (!previa) return;
+  const endereco = (config.endereco || "").trim();
+  const frame = previa.querySelector("iframe");
+  if (endereco) {
+    const q = encodeURIComponent(endereco);
+    if (frame.dataset.q !== q) {
+      frame.src = `https://www.google.com/maps?q=${q}&z=16&output=embed`;
+      frame.dataset.q = q;
+    }
+    previa.hidden = false;
+  } else {
+    previa.hidden = true;
+    frame.removeAttribute("src");
+    delete frame.dataset.q;
+  }
+}
+
 /* ===================================================================
    Eventos
    =================================================================== */
 
-/* ---------- filtros e navegação ---------- */
+/* ---------- filtros ---------- */
 
 $("#filtros").addEventListener("click", (evento) => {
   const botao = evento.target.closest(".filtro");
   if (!botao) return;
-
   trocarCategoria(botao.dataset.categoria);
-
   const barra = $(".barra-filtros");
   if (barra.getBoundingClientRect().top < 0) {
     barra.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 });
 
-/* ---------- carrossel da capa ---------- */
+/* ---------- carrossel ---------- */
 
 $("#hero-anterior").addEventListener("click", () => { irParaSlide(slideAtual - 1); ligarRelogio(); });
 $("#hero-proximo").addEventListener("click", () => { irParaSlide(slideAtual + 1); ligarRelogio(); });
-
 $("#hero-pontos").addEventListener("click", (evento) => {
   const ponto = evento.target.closest(".hero-ponto");
   if (!ponto) return;
   irParaSlide(Number(ponto.dataset.ir));
   ligarRelogio();
 });
-
-// não gira enquanto a pessoa está lendo, nem com a aba em segundo plano
 $("#hero").addEventListener("mouseenter", desligarRelogio);
 $("#hero").addEventListener("mouseleave", () => { if (slides.length > 1) ligarRelogio(); });
 document.addEventListener("visibilitychange", () => {
@@ -871,43 +1212,46 @@ $("#grade").addEventListener("click", (evento) => {
   const foto = evento.target.closest(".cartao-foto");
   if (foto) abrirLupa(foto.dataset.id);
 });
-
 $("#lupa-fechar").addEventListener("click", () => $("#lupa").close());
 $("#lupa").addEventListener("click", (evento) => {
   if (evento.target === $("#lupa")) $("#lupa").close();
 });
 
-/* ---------- abrir e fechar o painel ---------- */
+/* ---------- abrir / fechar o painel ---------- */
 
 $("#gatilho-admin").addEventListener("click", abrirPainel);
 $("#admin-fechar").addEventListener("click", fecharPainel);
-$("#sobreposicao").addEventListener("click", fecharPainel);
-
 document.addEventListener("keydown", (evento) => {
   if (evento.key === "Escape" && !$("#admin").hidden) fecharPainel();
 });
 
-/* ---------- login e logout ---------- */
+/* ---------- navegação entre seções ---------- */
+
+$("#admin-nav").addEventListener("click", (evento) => {
+  const item = evento.target.closest(".admin-nav-item");
+  if (item) trocarSecao(item.dataset.secao);
+});
+
+/* ---------- login / logout ---------- */
 
 $("#formulario-login").addEventListener("submit", async (evento) => {
   evento.preventDefault();
-  const email = $("#login-email").value.trim();
+  const usuario = $("#login-usuario").value.trim();
   const senha = $("#login-senha").value;
-
-  if (!email || !senha) {
-    notificar("Preencha e-mail e senha.", "erro");
+  if (!usuario || !senha) {
+    notificar("Preencha usuário e senha.", "erro");
     return;
   }
-
   try {
     const dados = await api("/admin/login", {
       method: "POST",
-      body: JSON.stringify({ email, senha }),
+      body: JSON.stringify({ usuario, senha }),
     });
     localStorage.setItem(CONFIG.chaveToken, dados.token);
-    localStorage.setItem(CONFIG.chaveEmail, dados.admin.email);
+    localStorage.setItem(CONFIG.chaveUsuario, dados.admin.usuario);
     $("#formulario-login").reset();
     mostrarPainel(true);
+    await carregarCardapio();
     notificar("Bem-vindo de volta.");
   } catch (erro) {
     notificar(erro.message, "erro");
@@ -916,68 +1260,55 @@ $("#formulario-login").addEventListener("submit", async (evento) => {
 
 $("#botao-sair").addEventListener("click", () => {
   sair();
+  carregarCardapio();
   notificar("Você saiu do painel.");
 });
 
-/* ---------- configuração do site ---------- */
+/* ---------- informações e localização ---------- */
 
-$("#atalhos").addEventListener("click", (evento) => {
-  const botao = evento.target.closest(".atalho");
-  if (!botao) return;
-
-  const formulario = $("#formulario-config");
-  const usuario = formulario.elements.instagram.value.trim() || config.instagram || "";
-  const telefone = (formulario.elements.telefone.value || "").replace(/\D/g, "");
-
-  const destinos = {
-    instagram: {
-      link: usuario ? `https://instagram.com/${usuario}` : "",
-      texto: "Pedir no Instagram",
-      erro: "Preencha o campo Instagram primeiro.",
-    },
-    whatsapp: {
-      link: telefone ? `https://wa.me/55${telefone}` : "",
-      texto: "Pedir no WhatsApp",
-      erro: "Preencha o campo Telefone primeiro.",
-    },
-    ifood: {
-      link: "https://www.ifood.com.br/",
-      texto: "Pedir no iFood",
-    },
-  };
-
-  const escolha = destinos[botao.dataset.destino];
-  if (!escolha.link) {
-    notificar(escolha.erro, "erro");
-    return;
-  }
-
-  formulario.elements.linkPedido.value = escolha.link;
-  formulario.elements.textoBotao.value = escolha.texto;
-
-  if (botao.dataset.destino === "ifood") {
-    notificar("Cole o endereço da sua loja no iFood no campo do link.");
-  }
-});
-
-$("#formulario-config").addEventListener("submit", async (evento) => {
-  evento.preventDefault();
-  const dados = Object.fromEntries(new FormData(evento.target));
-
-  if (dados.linkPedido && !/^https?:\/\//i.test(dados.linkPedido.trim())) {
-    notificar("O link deve começar com http:// ou https://", "erro");
-    return;
-  }
-
+async function salvarConfig(dados, mensagem) {
   try {
     config = await api("/config", { method: "PUT", body: JSON.stringify(dados) });
     aplicarConfig();
     montarGrade();
-    notificar("Configurações salvas.");
+    notificar(mensagem);
   } catch (erro) {
     notificar(erro.message, "erro");
   }
+}
+
+$("#formulario-info").addEventListener("submit", (evento) => {
+  evento.preventDefault();
+  const d = Object.fromEntries(new FormData(evento.target));
+  salvarConfig(
+    { sobre: d.sobre, instagram: d.instagram, telefone: d.telefone, email: d.email },
+    "Informações salvas."
+  );
 });
+
+$("#formulario-local").addEventListener("submit", (evento) => {
+  evento.preventDefault();
+  const d = Object.fromEntries(new FormData(evento.target));
+  salvarConfig({ endereco: d.endereco }, "Endereço salvo.");
+});
+
+$("#formulario-horarios").addEventListener("submit", (evento) => {
+  evento.preventDefault();
+  salvarConfig({ horarios: lerHorarios() }, "Horários salvos.");
+});
+
+// "Fechado" esconde os campos de hora do dia
+$("#horarios-grade").addEventListener("change", (evento) => {
+  if (!evento.target.matches('[data-campo="fechado"]')) return;
+  const linha = evento.target.closest(".horario-linha");
+  const fechado = evento.target.checked;
+  linha.classList.toggle("fechado", fechado);
+  linha.querySelectorAll('[data-campo="abre"], [data-campo="fecha"]').forEach((i) => {
+    i.disabled = fechado;
+  });
+});
+
+$("#horarios-replicar").addEventListener("click", replicarSegunda);
 
 /* ---------- criar item ---------- */
 
@@ -991,7 +1322,6 @@ $("#formulario-criar").addEventListener("submit", async (evento) => {
     notificar(problema, "erro");
     return;
   }
-
   try {
     await api("/menu", {
       method: "POST",
@@ -999,10 +1329,10 @@ $("#formulario-criar").addEventListener("submit", async (evento) => {
         nome: dados.nome.trim(),
         descricao: dados.descricao.trim(),
         preco: dados.preco,
-        categoria: dados.categoria,
+        categoriaId: Number(dados.categoriaId),
         imagem: dados.imagem.trim(),
         destaque: formulario.destaque.checked,
-        carrossel: formulario.carrossel.checked,
+        ativo: formulario.ativo.checked,
       }),
     });
     formulario.reset();
@@ -1014,12 +1344,13 @@ $("#formulario-criar").addEventListener("submit", async (evento) => {
   }
 });
 
-/* ---------- editar, cancelar e deletar ---------- */
+/* ---------- lista de itens: ativar, editar, cancelar, excluir ---------- */
 
 $("#lista").addEventListener("click", async (evento) => {
   const editar = evento.target.closest(".acao-editar");
   const remover = evento.target.closest(".acao-remover");
   const cancelar = evento.target.closest(".acao-cancelar");
+  const ativo = evento.target.closest(".acao-ativo");
 
   if (editar) {
     const id = Number(editar.dataset.id);
@@ -1027,30 +1358,38 @@ $("#lista").addEventListener("click", async (evento) => {
     montarListaAdmin();
     return;
   }
-
   if (cancelar) {
     editandoId = null;
     montarListaAdmin();
     return;
   }
-
+  if (ativo) {
+    const id = Number(ativo.dataset.ativo);
+    const p = pratos.find((x) => x.id === id);
+    if (!p) return;
+    try {
+      await api(`/menu/${id}`, { method: "PUT", body: JSON.stringify({ ativo: p.ativo === false }) });
+      await carregarCardapio();
+      notificar(p.ativo === false ? "Item ativado." : "Item desativado.");
+    } catch (erro) {
+      notificar(erro.message, "erro");
+    }
+    return;
+  }
   if (remover) {
-    const id = Number(remover.dataset.id);
+    const id = Number(remover.dataset.remover);
     const prato = pratos.find((item) => item.id === id);
-    if (!confirm(`Tem certeza que deseja deletar "${prato?.nome}"?`)) return;
-
+    if (!confirm(`Excluir "${prato?.nome}"? Esta ação não pode ser desfeita.`)) return;
     try {
       await api(`/menu/${id}`, { method: "DELETE" });
       editandoId = null;
       await carregarCardapio();
-      notificar("Item deletado com sucesso!");
+      notificar("Item excluído.");
     } catch (erro) {
       notificar(erro.message, "erro");
     }
   }
 });
-
-/* ---------- salvar edição ---------- */
 
 $("#lista").addEventListener("submit", async (evento) => {
   const formulario = evento.target.closest(".editor");
@@ -1065,7 +1404,6 @@ $("#lista").addEventListener("submit", async (evento) => {
     notificar(problema, "erro");
     return;
   }
-
   try {
     await api(`/menu/${id}`, {
       method: "PUT",
@@ -1073,26 +1411,66 @@ $("#lista").addEventListener("submit", async (evento) => {
         nome: dados.nome.trim(),
         descricao: dados.descricao.trim(),
         preco: dados.preco,
-        categoria: dados.categoria,
-        imagem: dados.imagem.trim(),   // vazio remove a imagem
+        categoriaId: Number(dados.categoriaId),
+        imagem: dados.imagem.trim(),
         destaque: formulario.destaque.checked,
-        carrossel: formulario.carrossel.checked,
+        ativo: formulario.ativo.checked,
       }),
     });
     editandoId = null;
     await carregarCardapio();
-    notificar("Item atualizado com sucesso!");
+    notificar("Item atualizado.");
   } catch (erro) {
     notificar(erro.message, "erro");
   }
 });
 
-/* ---------- envio de imagem ---------- */
+/* ---------- categorias ---------- */
+
+$("#formulario-categoria").addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  const campo = evento.target.elements.nome;
+  const nome = campo.value.trim();
+  if (!nome) return;
+  try {
+    await api("/categorias", { method: "POST", body: JSON.stringify({ nome }) });
+    campo.value = "";
+    await carregarCategorias();
+    atualizarPainel();
+    notificar("Categoria criada.");
+  } catch (erro) {
+    notificar(erro.message, "erro");
+  }
+});
+
+$("#lista-categorias").addEventListener("click", (evento) => {
+  const mover = evento.target.closest("[data-mover]");
+  const excluir = evento.target.closest("[data-excluir]");
+  if (mover) {
+    const id = mover.closest(".categoria-linha").dataset.id;
+    moverCategoria(id, mover.dataset.mover);
+  }
+  if (excluir) excluirCategoria(excluir.dataset.excluir);
+});
+
+$("#lista-categorias").addEventListener("change", (evento) => {
+  if (!evento.target.matches(".categoria-nome")) return;
+  const id = evento.target.closest(".categoria-linha").dataset.id;
+  salvarNomeCategoria(id, evento.target.value);
+});
+
+/* ---------- destaques ---------- */
+
+$("#lista-destaques").addEventListener("change", (evento) => {
+  const caixa = evento.target.closest("[data-destaque]");
+  if (caixa) alternarDestaque(caixa.dataset.destaque, caixa.checked);
+});
+
+/* ---------- upload e prévia (formulário de criar + editores) ---------- */
 
 $("#admin").addEventListener("change", (evento) => {
   if (evento.target.matches("input[type=file][data-upload]")) enviarImagem(evento.target);
 });
-
 $("#admin").addEventListener("input", (evento) => {
   if (evento.target.matches('input[name="imagem"]')) acompanharPrevia(evento.target);
 });
@@ -1108,7 +1486,6 @@ $("#busca").addEventListener("input", (evento) => {
    Início
    =================================================================== */
 
-montarSeletores();
 mostrarPainel(estaLogado());
 iniciarAbertura();
-carregarConfig().then(carregarCardapio);
+Promise.all([carregarConfig(), carregarCategorias()]).then(carregarCardapio);

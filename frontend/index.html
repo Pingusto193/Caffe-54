@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Caffè 54 — Sofisticação Italiana em Florianópolis</title>
+  <title>Caffè 54 — Cardápio · Florianópolis</title>
   <meta name="description" content="Brunch italiano, confeitaria artesanal e cafés especiais em Florianópolis. Veja o cardápio completo do Caffè 54.">
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Caffè 54 — Sofisticação Italiana">
+  <meta property="og:title" content="Caffè 54">
   <meta property="og:description" content="Brunch italiano, confeitaria artesanal e cafés especiais em Florianópolis.">
   <meta property="og:image" content="images/hero.jpg">
 
@@ -37,13 +37,11 @@
 
 <!-- ============ ABERTURA ============ -->
 <div class="abertura" id="abertura" role="presentation">
-  <span class="abertura-cortina abertura-cortina-topo"></span>
-  <span class="abertura-cortina abertura-cortina-base"></span>
-  <div class="abertura-conteudo">
-    <span class="abertura-risco" aria-hidden="true"></span>
-    <p class="abertura-nome" id="abertura-nome" aria-hidden="true"></p>
-    <p class="abertura-linha">Sofisticação Italiana</p>
-    <div class="abertura-barra"><span class="abertura-barra-cheia"></span></div>
+  <div class="abertura-palco">
+    <svg class="abertura-anel" viewBox="0 0 120 120" aria-hidden="true">
+      <circle cx="60" cy="60" r="54" pathLength="1"/>
+    </svg>
+    <span class="abertura-nome" aria-hidden="true">Caffè 54</span>
   </div>
 </div>
 
@@ -54,14 +52,7 @@
   <div class="area cabecalho-conteudo">
     <a href="#topo" class="marca">
       <span class="marca-nome" data-nome-cafe>Caffè 54</span>
-      <span class="marca-linha" data-descricao-cafe>Sofisticação Italiana</span>
     </a>
-    <nav class="navegacao" aria-label="Principal">
-      <a href="#cardapio" class="nav-link">Cardápio</a>
-      <a class="botao botao-ouro botao-pequeno" data-link-pedido href="#" target="_blank" rel="noopener">
-        <span data-texto-botao>Pedir</span>
-      </a>
-    </nav>
   </div>
 </header>
 
@@ -81,9 +72,8 @@
     <div class="area hero-conteudo">
       <div class="hero-texto">
         <h1 class="hero-titulo" data-nome-cafe data-entrada style="--atraso: 120ms">Caffè 54</h1>
-        <p class="hero-subtitulo" data-descricao-cafe data-entrada style="--atraso: 240ms">Sofisticação Italiana</p>
 
-        <div class="hero-prato" id="hero-prato" data-entrada style="--atraso: 380ms" hidden>
+        <div class="hero-prato" id="hero-prato" data-entrada style="--atraso: 300ms" hidden>
           <span class="hero-prato-topo" id="hero-prato-categoria"></span>
           <span class="hero-prato-nome" id="hero-prato-nome"></span>
           <span class="hero-prato-preco" id="hero-prato-preco"></span>
@@ -104,6 +94,39 @@
     </div>
   </section>
 
+  <!-- ============ SOBRE O ESTABELECIMENTO ============ -->
+  <section class="area sobre-casa" id="sobre" aria-label="Sobre a casa" hidden>
+    <p class="secao-rotulo">A casa</p>
+    <p class="sobre-casa-texto" data-sobre></p>
+  </section>
+
+  <!-- ============ VISITE / LOCALIZAÇÃO / HORÁRIO ============ -->
+  <section class="visite" id="visite" aria-label="Localização e horário" hidden>
+    <div class="area visite-linha">
+      <div class="visite-dado" data-dado="endereco" hidden>
+        <span class="visite-rotulo">Onde nos encontrar</span>
+        <p class="visite-valor" data-endereco></p>
+        <a class="visite-mapa-link" data-mapa-link href="#" target="_blank" rel="noopener">
+          Ver no mapa
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
+        </a>
+      </div>
+      <div class="visite-dado" data-dado="horario" hidden>
+        <span class="visite-rotulo">Horário</span>
+        <p class="visite-valor" data-horario></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INTRO DO CARDÁPIO ============ -->
+  <div class="area secao-intro" data-entrada style="--atraso: 560ms">
+    <p class="secao-rotulo">O cardápio</p>
+    <p class="secao-linha">
+      Brunch italiano, confeitaria artesanal e cafés especiais — feitos na casa,
+      em Florianópolis.
+    </p>
+  </div>
+
   <!-- ============ FILTROS ============ -->
   <nav class="barra-filtros" id="cardapio" aria-label="Filtrar por categoria">
     <div class="area filtros" id="filtros" role="tablist"></div>
@@ -122,7 +145,7 @@
 <!-- ============ FOOTER ============ -->
 <footer class="rodape">
   <div class="area rodape-conteudo">
-    <div class="rodape-bloco">
+    <div class="rodape-bloco rodape-bloco-marca">
       <p class="rodape-marca" data-nome-cafe>Caffè 54</p>
       <p class="rodape-texto" data-horario></p>
     </div>
@@ -141,7 +164,7 @@
     </div>
 
     <div class="rodape-bloco" data-bloco="instagram">
-      <p class="rodape-rotulo">Pedidos</p>
+      <p class="rodape-rotulo">Instagram</p>
       <a class="rodape-instagram" data-instagram href="#" target="_blank" rel="noopener">
         <svg class="icone" viewBox="0 0 24 24" aria-hidden="true">
           <rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/>
@@ -154,7 +177,7 @@
   </div>
 
   <div class="area rodape-base">
-    <p data-nota-pedido></p>
+    <p class="rodape-copyright">© <span data-ano>2026</span> <span data-nome-cafe>Caffè 54</span></p>
   </div>
 </footer>
 
@@ -170,8 +193,6 @@
       <h2 class="lupa-nome" id="lupa-nome"></h2>
       <p class="lupa-descricao" id="lupa-descricao"></p>
       <p class="lupa-preco" id="lupa-preco"></p>
-      <a class="botao botao-ouro botao-largo" id="lupa-pedir" data-link-pedido
-         href="#" target="_blank" rel="noopener"><span data-texto-botao>Pedir</span></a>
     </div>
   </div>
 </dialog>
@@ -187,7 +208,6 @@
 </button>
 
 <!-- ============ PAINEL ADMIN ============ -->
-<div class="sobreposicao" id="sobreposicao" hidden></div>
 
 <aside class="admin" id="admin" role="dialog" aria-modal="true" aria-labelledby="admin-titulo" hidden>
 
@@ -198,154 +218,210 @@
     </button>
   </div>
 
-  <div class="admin-corpo">
+  <!-- login -->
+  <form id="formulario-login" class="admin-login bloco" novalidate>
+    <p class="bloco-texto">Entre para gerenciar o cardápio e as informações do site.</p>
+    <label class="campo">
+      <span>Usuário</span>
+      <input type="text" id="login-usuario" autocomplete="username" autocapitalize="none"
+             spellcheck="false" required>
+    </label>
+    <label class="campo">
+      <span>Senha</span>
+      <input type="password" id="login-senha" autocomplete="current-password" required>
+    </label>
+    <button type="submit" class="botao botao-ouro botao-largo">Entrar</button>
+  </form>
 
-    <!-- login -->
-    <form id="formulario-login" class="bloco" novalidate>
-      <p class="bloco-texto">Entre para gerenciar o cardápio e as configurações do site.</p>
-      <label class="campo">
-        <span>E-mail</span>
-        <input type="email" id="login-email" autocomplete="username" required>
-      </label>
-      <label class="campo">
-        <span>Senha</span>
-        <input type="password" id="login-senha" autocomplete="current-password" required>
-      </label>
-      <button type="submit" class="botao botao-ouro botao-largo">Entrar</button>
-    </form>
+  <!-- dashboard -->
+  <div id="dashboard" class="admin-dashboard" hidden>
 
-    <!-- dashboard -->
-    <div id="dashboard" hidden>
+    <nav class="admin-nav" id="admin-nav" aria-label="Seções do painel">
+      <button type="button" class="admin-nav-item" data-secao="cardapio">Cardápio</button>
+      <button type="button" class="admin-nav-item" data-secao="categorias">Categorias</button>
+      <button type="button" class="admin-nav-item" data-secao="destaques">Destaques</button>
+      <button type="button" class="admin-nav-item" data-secao="estabelecimento">Estabelecimento</button>
+      <button type="button" class="admin-nav-item" data-secao="localizacao">Localização</button>
+      <button type="button" class="admin-nav-item" data-secao="horarios">Horários</button>
+      <button type="button" class="admin-nav-item" data-secao="conta">Conta</button>
+    </nav>
 
-      <!-- configurações do site -->
-      <div class="bloco">
-        <div class="sessao-topo">
-          <h3 class="bloco-titulo">Botão de Pedido</h3>
+    <div class="admin-conteudo">
+
+      <!-- ---------- CARDÁPIO ---------- -->
+      <section class="painel-secao" data-secao="cardapio" hidden>
+        <h3 class="secao-titulo">Cardápio</h3>
+
+        <div class="bloco">
+          <h4 class="bloco-titulo">Adicionar item</h4>
+          <p class="bloco-texto">Preencha os campos e clique em "Criar item". Ele aparece no site na hora.</p>
+          <form id="formulario-criar" novalidate>
+            <label class="campo">
+              <span>Nome <em>*</em></span>
+              <input type="text" name="nome" required>
+            </label>
+            <label class="campo">
+              <span>Descrição <em>*</em></span>
+              <textarea name="descricao" rows="3" required></textarea>
+              <small class="dica">O texto que aparece embaixo do nome no card.</small>
+            </label>
+            <div class="dupla">
+              <label class="campo">
+                <span>Preço (R$) <em>*</em></span>
+                <input type="number" name="preco" step="0.01" min="0" required>
+              </label>
+              <label class="campo">
+                <span>Categoria <em>*</em></span>
+                <select name="categoriaId" class="seletor-categoria" required></select>
+              </label>
+            </div>
+            <div class="campo-imagem">
+              <label class="campo">
+                <span>Imagem <small>(opcional)</small></span>
+                <input type="text" name="imagem" list="imagens-disponiveis" placeholder="Nenhuma imagem">
+                <small class="dica">Envie uma foto do computador ou escolha uma já enviada.</small>
+              </label>
+              <div class="envio">
+                <label class="botao botao-contorno botao-pequeno rotulo-arquivo">
+                  Enviar do computador
+                  <input type="file" data-upload accept="image/jpeg,image/png,image/webp,image/avif" hidden>
+                </label>
+                <span class="envio-aviso" data-envio-aviso></span>
+              </div>
+              <figure class="previa" data-previa hidden><img alt=""></figure>
+            </div>
+            <label class="marcador">
+              <input type="checkbox" name="destaque">
+              <span>Marcar como destaque <small>(gira no carrossel da capa)</small></span>
+            </label>
+            <label class="marcador">
+              <input type="checkbox" name="ativo" checked>
+              <span>Ativo <small>(desmarque para esconder do site sem apagar)</small></span>
+            </label>
+            <button type="submit" class="botao botao-ouro botao-largo">Criar item</button>
+          </form>
         </div>
-        <p class="bloco-texto">
-          Escolha para onde o botão leva quando alguém clicar: iFood, Instagram,
-          WhatsApp, Rappi ou qualquer outro endereço.
-        </p>
-        <form id="formulario-config" novalidate>
-          <label class="campo">
-            <span>Link do botão</span>
-            <input type="url" name="linkPedido" placeholder="https://www.ifood.com.br/delivery/seu-caffe">
-            <small class="dica">Enquanto estiver vazio, o botão não aparece no site.</small>
-          </label>
-          <label class="campo">
-            <span>Texto do botão</span>
-            <input type="text" name="textoBotao" maxlength="24" placeholder="Pedir">
-          </label>
 
-          <div class="atalhos" id="atalhos">
-            <span class="atalhos-rotulo">Preencher com:</span>
-            <button type="button" class="atalho" data-destino="instagram">Instagram</button>
-            <button type="button" class="atalho" data-destino="whatsapp">WhatsApp</button>
-            <button type="button" class="atalho" data-destino="ifood">iFood</button>
+        <div class="bloco">
+          <div class="sessao-topo">
+            <h4 class="bloco-titulo">Itens do cardápio</h4>
+            <span class="contagem" id="contagem"></span>
           </div>
+          <input type="search" id="busca" class="busca" placeholder="Buscar por nome ou categoria">
+          <ul class="lista" id="lista"></ul>
+          <p class="lista-vazia" id="lista-vazia" hidden>Nenhum item encontrado.</p>
+        </div>
+      </section>
+
+      <!-- ---------- CATEGORIAS ---------- -->
+      <section class="painel-secao" data-secao="categorias" hidden>
+        <h3 class="secao-titulo">Categorias</h3>
+        <p class="bloco-texto">
+          A ordem desta lista é a ordem em que os blocos aparecem no cardápio do site.
+          Use as setas para reordenar. Uma categoria só pode ser excluída quando não
+          tiver itens.
+        </p>
+        <form id="formulario-categoria" class="linha-add" novalidate>
+          <input type="text" name="nome" placeholder="Nova categoria" maxlength="40" required>
+          <button type="submit" class="botao botao-ouro botao-pequeno">Adicionar</button>
+        </form>
+        <ul class="lista-categorias" id="lista-categorias"></ul>
+      </section>
+
+      <!-- ---------- DESTAQUES ---------- -->
+      <section class="painel-secao" data-secao="destaques" hidden>
+        <h3 class="secao-titulo">Destaques</h3>
+        <p class="bloco-texto">
+          Os itens marcados aqui giram no carrossel da capa do site. O ideal é marcar
+          de 3 a 7 itens com boas fotos. Sem nenhum marcado, a capa usa a foto padrão.
+        </p>
+        <ul class="lista-destaques" id="lista-destaques"></ul>
+      </section>
+
+      <!-- ---------- ESTABELECIMENTO ---------- -->
+      <section class="painel-secao" data-secao="estabelecimento" hidden>
+        <h3 class="secao-titulo">Informações do estabelecimento</h3>
+        <form id="formulario-info" novalidate>
+          <label class="campo">
+            <span>Apresentação do estabelecimento</span>
+            <textarea name="sobre" rows="7" maxlength="800"></textarea>
+            <small class="dica">
+              Um texto sobre a casa — história, proposta, tipos de produto, o ambiente,
+              os diferenciais. É a primeira coisa que a pessoa lê depois da capa do site.
+              Em branco, essa parte não aparece.
+            </small>
+          </label>
 
           <hr class="divisor">
 
           <label class="campo">
-            <span>Nome do café</span>
-            <input type="text" name="nome" maxlength="60">
-          </label>
-          <label class="campo">
-            <span>Frase de apoio</span>
-            <input type="text" name="descricao" maxlength="80">
-          </label>
-          <label class="campo">
-            <span>Instagram <small>(sem arroba)</small></span>
+            <span>Instagram</span>
             <input type="text" name="instagram" placeholder="caffe54floripa">
-          </label>
-          <label class="campo">
-            <span>Endereço</span>
-            <input type="text" name="endereco">
+            <small class="dica">Só o nome de usuário, sem @. Vira um link no rodapé do site.</small>
           </label>
           <div class="dupla">
             <label class="campo">
               <span>Telefone</span>
-              <input type="text" name="telefone">
+              <input type="text" name="telefone" placeholder="48 3200-0000">
             </label>
             <label class="campo">
-              <span>E-mail</span>
-              <input type="email" name="email">
+              <span>E-mail de contato</span>
+              <input type="email" name="email" placeholder="contato@caffe54.com">
             </label>
           </div>
-          <label class="campo">
-            <span>Horário</span>
-            <input type="text" name="horario">
-          </label>
-
-          <button type="submit" class="botao botao-ouro botao-largo">Salvar Configurações</button>
+          <small class="dica">
+            Instagram, telefone e e-mail aparecem no rodapé do site. O e-mail de contato
+            não precisa ser o mesmo que você usa para entrar neste painel.
+          </small>
+          <button type="submit" class="botao botao-ouro botao-largo">Salvar</button>
         </form>
-      </div>
+      </section>
 
-      <!-- criar item -->
-      <div class="bloco">
-        <div class="sessao-topo">
-          <h3 class="bloco-titulo">Adicionar Novo Item</h3>
-        </div>
-        <form id="formulario-criar" novalidate>
+      <!-- ---------- LOCALIZAÇÃO ---------- -->
+      <section class="painel-secao" data-secao="localizacao" hidden>
+        <h3 class="secao-titulo">Localização</h3>
+        <form id="formulario-local" novalidate>
           <label class="campo">
-            <span>Nome <em>*</em></span>
-            <input type="text" name="nome" required>
+            <span>Endereço completo</span>
+            <textarea name="endereco" rows="2" placeholder="Rua Exemplo, 123 — Centro, Florianópolis - SC"></textarea>
+            <small class="dica">
+              Usado na seção de localização do site e para montar o mapa. Quanto mais
+              completo (rua, número, bairro, cidade), mais preciso o mapa fica.
+            </small>
           </label>
-          <label class="campo">
-            <span>Descrição <em>*</em></span>
-            <textarea name="descricao" rows="3" required></textarea>
-          </label>
-          <div class="dupla">
-            <label class="campo">
-              <span>Preço (R$) <em>*</em></span>
-              <input type="number" name="preco" step="0.01" min="0" required>
-            </label>
-            <label class="campo">
-              <span>Categoria <em>*</em></span>
-              <select name="categoria" class="seletor-categoria" required></select>
-            </label>
-          </div>
-          <div class="campo-imagem">
-            <label class="campo">
-              <span>Imagem <small>(opcional)</small></span>
-              <input type="text" name="imagem" list="imagens-disponiveis"
-                     placeholder="Nenhuma imagem">
-            </label>
-            <div class="envio">
-              <label class="botao botao-contorno botao-pequeno rotulo-arquivo">
-                Enviar do computador
-                <input type="file" data-upload accept="image/jpeg,image/png,image/webp,image/avif" hidden>
-              </label>
-              <span class="envio-aviso" data-envio-aviso></span>
-            </div>
-            <figure class="previa" data-previa hidden><img alt=""></figure>
-          </div>
-          <label class="marcador">
-            <input type="checkbox" name="destaque">
-            <span>Marcar como destaque</span>
-          </label>
-          <label class="marcador">
-            <input type="checkbox" name="carrossel">
-            <span>Mostrar no carrossel da capa</span>
-          </label>
-          <button type="submit" class="botao botao-ouro botao-largo">Criar Item</button>
+          <button type="submit" class="botao botao-ouro botao-largo">Salvar endereço</button>
         </form>
-      </div>
+        <figure class="local-previa" id="local-previa" hidden>
+          <figcaption>Prévia do mapa que aparece no site</figcaption>
+          <iframe title="Prévia do mapa" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </figure>
+      </section>
 
-      <!-- lista -->
-      <div class="bloco">
-        <div class="sessao-topo">
-          <h3 class="bloco-titulo">Itens do Cardápio</h3>
-          <span class="contagem" id="contagem"></span>
-        </div>
-        <input type="search" id="busca" class="busca" placeholder="Buscar por nome ou categoria">
-        <ul class="lista" id="lista"></ul>
-        <p class="lista-vazia" id="lista-vazia" hidden>Nenhum item encontrado.</p>
-      </div>
+      <!-- ---------- HORÁRIOS ---------- -->
+      <section class="painel-secao" data-secao="horarios" hidden>
+        <h3 class="secao-titulo">Horário de atendimento</h3>
+        <p class="bloco-texto">
+          Ajuste a hora de abrir e fechar de cada dia. Marque "Fechado" nos dias que
+          não abre. No site, dias seguidos com o mesmo horário aparecem juntos
+          (ex.: "Seg a Sex: 08:00–18:00").
+        </p>
+        <form id="formulario-horarios" novalidate>
+          <div class="horarios-grade" id="horarios-grade"></div>
+          <button type="button" class="botao botao-contorno botao-pequeno" id="horarios-replicar">
+            Repetir segunda-feira nos outros dias
+          </button>
+          <button type="submit" class="botao botao-ouro botao-largo">Salvar horários</button>
+        </form>
+      </section>
 
-      <button type="button" class="botao botao-sair botao-largo" id="botao-sair">Sair</button>
+      <!-- ---------- CONTA ---------- -->
+      <section class="painel-secao" data-secao="conta" hidden>
+        <h3 class="secao-titulo">Conta</h3>
+        <p class="bloco-texto">Você está logado como <strong id="conta-email"></strong>.</p>
+        <button type="button" class="botao botao-sair botao-largo" id="botao-sair">Sair do painel</button>
+      </section>
+
     </div>
-
   </div>
 </aside>
 

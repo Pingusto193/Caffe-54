@@ -13,7 +13,7 @@ const CONFIG = {
   // Pasta onde ficam as fotos do cardápio.
   pastaImagens: "images/cardapio/",
 
-  // Chave usada para guardar o token do admin no navegador.
+  // Chaves usadas para guardar a sessão do admin no navegador.
   chaveToken: "adminToken",
-  chaveEmail: "adminEmail",
+  chaveUsuario: "adminUsuario",
 };

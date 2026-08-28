@@ -1,14 +1,5 @@
 [
   {
-    "nome": "Mesa Caffè 54",
-    "categoria": "Vitrine",
-    "preco": 0.0,
-    "precoTexto": "Sem preço único",
-    "descricao": "Uma composição que reúne diferentes pratos do Caffè 54, destacando a variedade do brunch, a apresentação cuidadosa e a identidade visual da casa.",
-    "imagem": "cardapio_vitrine_mesa-caffe-54.jpg",
-    "destaque": false
-  },
-  {
     "nome": "Colazione del Mattino",
     "categoria": "Breakfast",
     "preco": 46.0,
@@ -144,15 +135,6 @@
     "destaque": true
   },
   {
-    "nome": "Frutta Fresca e seleção da casa",
-    "categoria": "Vitrine",
-    "preco": 32.0,
-    "precoTexto": "R$ 32 (Frutta Fresca)",
-    "descricao": "Frutas frescas com creme de iogurte, granola e mel aparecem no centro de uma mesa com diferentes opções do Caffè 54.",
-    "imagem": "cardapio_vitrine_frutta-fresca-e-selecao-da-casa.jpg",
-    "destaque": false
-  },
-  {
     "nome": "Cinnamon Roll",
     "categoria": "Doces",
     "preco": 28.0,
@@ -162,30 +144,12 @@
     "destaque": false
   },
   {
-    "nome": "Seleção de viennoiserie",
-    "categoria": "Vitrine",
-    "preco": 0.0,
-    "precoTexto": "Preços variam conforme o item",
-    "descricao": "Composição com diferentes itens de vitrine. No cardápio, os itens de confeitaria têm preços individuais.",
-    "imagem": "cardapio_vitrine_selecao-de-viennoiserie.jpg",
-    "destaque": false
-  },
-  {
     "nome": "Cookies",
-    "categoria": "Vitrine",
+    "categoria": "Doces",
     "preco": 18.0,
     "precoTexto": "R$ 18",
     "descricao": "Seleção de cookies artesanais; os sabores disponíveis devem ser consultados na vitrine.",
     "imagem": "cardapio_vitrine_cookies.jpg",
-    "destaque": false
-  },
-  {
-    "nome": "Sanduíche de vitrine",
-    "categoria": "Sanduíches",
-    "preco": 0.0,
-    "precoTexto": "Preço não identificável com segurança",
-    "descricao": "Sanduíche artesanal servido em pão de aparência rústica. O cardápio não associa essa foto, de forma inequívoca, a um único item com preço.",
-    "imagem": "cardapio_sandwiches_sanduiche-de-vitrine.jpg",
     "destaque": false
   },
   {
@@ -195,24 +159,6 @@
     "precoTexto": "R$ 38 (R$ 24 + R$ 14)",
     "descricao": "Brownie do cardápio com uma bola de sorvete Monte Pelmo. O valor indicado soma o brownie (R$ 24) ao adicional de sorvete (R$ 14).",
     "imagem": "cardapio_doces_brownie-com-sorvete.jpg",
-    "destaque": false
-  },
-  {
-    "nome": "Café com leite texturizado",
-    "categoria": "Caffès Quentes",
-    "preco": 0.0,
-    "precoTexto": "Preço varia conforme a bebida",
-    "descricao": "Imagem de bebida à base de espresso e leite texturizado. Como a foto não identifica de forma inequívoca Piccolo, Latte ou Capuccino Italiano, o preço exato não pode ser atribuído com segurança.",
-    "imagem": "cardapio_caffes-quentes_cafe-com-leite-texturizado.jpg",
-    "destaque": false
-  },
-  {
-    "nome": "Ristretto e Espresso",
-    "categoria": "Caffès Quentes",
-    "preco": 10.0,
-    "precoTexto": "R$ 10 / R$ 14",
-    "descricao": "Duas extrações curtas de café: Ristretto por R$ 10 e Espresso por R$ 14.",
-    "imagem": "cardapio_caffes-quentes_ristretto-e-espresso.jpg",
     "destaque": false
   },
   {
@@ -303,15 +249,6 @@
     "precoTexto": "R$ 22 cada (Soda Italiana da Casa)",
     "descricao": "Duas bebidas refrescantes da casa. No cardápio, a Soda Italiana da Casa custa R$ 22 e pode ser de limão siciliano ou frutas vermelhas.",
     "imagem": "cardapio_bebidas-especiais_bebidas-geladas-da-casa.jpg",
-    "destaque": false
-  },
-  {
-    "nome": "Experiência Caffè 54",
-    "categoria": "Vitrine",
-    "preco": 0.0,
-    "precoTexto": "Sem preço único",
-    "descricao": "Vista de uma mesa completa com pratos doces e salgados, cafés e itens de brunch; cada item possui preço próprio no cardápio.",
-    "imagem": "cardapio_vitrine_experiencia-caffe-54.jpg",
     "destaque": false
   }
 ]

@@ -3,30 +3,41 @@ import { readFile } from "node:fs/promises";
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma.ts";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@caffe54.com";
-const ADMIN_SENHA = process.env.ADMIN_SENHA || "caffe54";
+const ADMIN_USUARIO = process.env.ADMIN_USUARIO || "admin.kf54";
+const ADMIN_SENHA = process.env.ADMIN_SENHA || "troque-esta-senha";
 
 const dados = JSON.parse(
   await readFile(new URL("./cardapio-dados.json", import.meta.url), "utf8")
 );
 
-// Valores iniciais do site. O admin troca tudo isso pelo painel;
+// Valores iniciais do site. O dono troca tudo isso pelo painel;
 // rodar o seed de novo restaura estes valores.
 const CONFIG_INICIAL = {
   nome: "Caffè 54",
   descricao: "Sofisticação Italiana",
   logo: null,
-  // Tudo abaixo é preenchido pelo admin no painel do site.
-  // Enquanto estiver vazio, o botão "Pedir" não aparece e os blocos
-  // do rodapé ficam escondidos.
+  // Guardados no banco, sem UI no painel (ver schema.prisma).
   linkPedido: null,
   textoBotao: "Pedir",
+  // Preenchidos pelo dono no painel. Vazio = bloco escondido no site.
   instagram: null,
   endereco: null,
   telefone: null,
   email: null,
-  horario: null,
+  horarios: null,
+  sobre: null,
 };
+
+// Ordem inicial das categorias (o dono reordena/renomeia/cria no painel).
+// É a ordem em que os blocos aparecem no cardápio do site.
+const CATEGORIAS_INICIAIS = [
+  "Breakfast",
+  "Sanduíches",
+  "Doces",
+  "Caffès Quentes",
+  "Caffès Gelados",
+  "Bebidas Especiais",
+];
 
 const restaurante = await prisma.restaurante.upsert({
   where: { id: 1 },
@@ -34,40 +45,68 @@ const restaurante = await prisma.restaurante.upsert({
   create: { id: 1, ...CONFIG_INICIAL },
 });
 
+// remove admins antigos deste restaurante que não sejam o usuário atual
+await prisma.admin.deleteMany({
+  where: { restauranteId: restaurante.id, usuario: { not: ADMIN_USUARIO } },
+});
+
 const admin = await prisma.admin.upsert({
-  where: { email: ADMIN_EMAIL },
+  where: { usuario: ADMIN_USUARIO },
   update: { senhaHash: await bcrypt.hash(ADMIN_SENHA, 10) },
   create: {
-    email: ADMIN_EMAIL,
+    usuario: ADMIN_USUARIO,
     senhaHash: await bcrypt.hash(ADMIN_SENHA, 10),
     restauranteId: restaurante.id,
   },
 });
 
-// recria o cardápio a partir do JSON extraído do PDF
+// recria as categorias
 await prisma.menuItem.deleteMany({ where: { restauranteId: restaurante.id } });
+await prisma.categoria.deleteMany({ where: { restauranteId: restaurante.id } });
+
+const categorias = {};
+for (const [ordem, nome] of CATEGORIAS_INICIAIS.entries()) {
+  const c = await prisma.categoria.create({
+    data: { nome, ordem, restauranteId: restaurante.id },
+  });
+  categorias[nome] = c.id;
+}
+
+// qualquer categoria do JSON que não esteja na lista inicial entra no fim
+for (const item of dados) {
+  if (categorias[item.categoria] === undefined) {
+    const c = await prisma.categoria.create({
+      data: {
+        nome: item.categoria,
+        ordem: Object.keys(categorias).length,
+        restauranteId: restaurante.id,
+      },
+    });
+    categorias[item.categoria] = c.id;
+  }
+}
+
+// recria o cardápio a partir do JSON
 await prisma.menuItem.createMany({
   data: dados.map((item) => ({
     nome: item.nome,
     descricao: item.descricao || null,
     preco: item.preco,
-    categoria: item.categoria,
+    categoriaId: categorias[item.categoria],
     imagem: item.imagem || null,
     destaque: Boolean(item.destaque),
-    // a capa começa girando os destaques; o admin ajusta no painel
-    carrossel: Boolean(item.destaque),
+    ativo: true,
     restauranteId: restaurante.id,
   })),
 });
 
 const total = await prisma.menuItem.count({ where: { restauranteId: restaurante.id } });
 const destaques = await prisma.menuItem.count({ where: { restauranteId: restaurante.id, destaque: true } });
-const naCapa = await prisma.menuItem.count({ where: { restauranteId: restaurante.id, carrossel: true } });
+const nCategorias = await prisma.categoria.count({ where: { restauranteId: restaurante.id } });
 
 console.log(`Restaurante: ${restaurante.nome} (id ${restaurante.id})`);
-console.log(`Admin:       ${admin.email} / ${ADMIN_SENHA}`);
+console.log(`Admin:       ${admin.usuario} / ${ADMIN_SENHA}`);
+console.log(`Categorias:  ${nCategorias}`);
 console.log(`Cardápio:    ${total} itens (${destaques} em destaque)`);
-console.log(`Capa:        ${naCapa} fotos no carrossel`);
-console.log(`Botão:       ${restaurante.linkPedido || "sem link — o admin define no painel"}`);
 
 await prisma.$disconnect();

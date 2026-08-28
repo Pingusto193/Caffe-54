@@ -11,13 +11,37 @@ import { fileURLToPath } from "node:url";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || "sua_chave_secreta_aqui";
+
+// MVP de um único estabelecimento. Todo dado já tem `restauranteId`; quando
+// existir login por estabelecimento, esta constante vira `req.admin.restauranteId`
+// nas rotas autenticadas e um "resolver por subdomínio" nas públicas.
+// Ver o roteiro em CLAUDE.md ("Login por estabelecimento").
 const RESTAURANTE_ID = 1;
+
+// O segredo dos tokens não tem fallback: sem um valor real no .env o
+// servidor nem sobe. Um fallback fixo no código deixaria qualquer pessoa
+// forjar um token de admin.
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET === "sua_chave_secreta_aqui" || JWT_SECRET.length < 24) {
+  console.error(
+    "\n  JWT_SECRET ausente ou fraco no .env.\n" +
+    "  Gere um e cole no .env como JWT_SECRET=\"...\":\n" +
+    "    node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\"\n"
+  );
+  process.exit(1);
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 app.use(cors());
 app.use(express.json());
+
+// cabeçalho barato que impede o navegador de "adivinhar" o tipo de um
+// arquivo servido e tratá-lo como script
+app.use((req, res, next) => {
+  res.set("X-Content-Type-Options", "nosniff");
+  next();
+});
 
 // serve o site (index.html, styles.css, app.js e as imagens do cardápio)
 app.use(express.static(path.join(__dirname, "..", "frontend")));
@@ -108,18 +132,38 @@ app.get("/imagens", autenticar, (req, res) => {
 
 // ============ CONFIGURAÇÃO DO SITE ============
 
-// Campos que o admin pode editar pelo painel.
-const CAMPOS_CONFIG = [
-  "nome", "descricao", "linkPedido", "textoBotao",
-  "instagram", "endereco", "telefone", "email", "horario",
-];
+// Campos de texto que o dono edita no painel (aba "Informações" + "Localização").
+const CAMPOS_CONFIG = ["instagram", "endereco", "telefone", "email", "sobre"];
 
-// pública: o site lê daqui o link do botão "Pedir" e os dados do rodapé
+// O que o site lê (inclui nome/descrição, usados no título e rodapé, e os horários).
+const SELECT_CONFIG = {
+  nome: true, descricao: true,
+  instagram: true, endereco: true, telefone: true, email: true,
+  sobre: true, horarios: true,
+};
+
+const DIAS_SEMANA = ["seg", "ter", "qua", "qui", "sex", "sab", "dom"];
+
+// Normaliza o array de horários vindo do painel. Fora do formato → null.
+function normalizarHorarios(entrada) {
+  if (!Array.isArray(entrada)) return null;
+  const limpo = entrada
+    .filter((h) => h && DIAS_SEMANA.includes(h.dia))
+    .map((h) => ({
+      dia: h.dia,
+      abre: typeof h.abre === "string" ? h.abre.slice(0, 5) : "",
+      fecha: typeof h.fecha === "string" ? h.fecha.slice(0, 5) : "",
+      fechado: Boolean(h.fechado),
+    }));
+  return limpo.length ? limpo : null;
+}
+
+// pública: o site lê daqui o contato do rodapé, a seção "Visite" e os horários
 app.get("/config", async (req, res) => {
   try {
     const restaurante = await prisma.restaurante.findUnique({
       where: { id: RESTAURANTE_ID },
-      select: Object.fromEntries(CAMPOS_CONFIG.map((campo) => [campo, true])),
+      select: SELECT_CONFIG,
     });
     if (!restaurante) return res.status(404).json({ error: "Restaurante não encontrado" });
     res.json(restaurante);
@@ -128,7 +172,7 @@ app.get("/config", async (req, res) => {
   }
 });
 
-// protegida: o admin escolhe para onde o botão leva (iFood, Instagram, WhatsApp...)
+// protegida: o dono edita as informações do estabelecimento
 app.put("/config", autenticar, async (req, res) => {
   try {
     const dados = {};
@@ -137,14 +181,14 @@ app.put("/config", autenticar, async (req, res) => {
         dados[campo] = String(req.body[campo]).trim();
       }
     }
-    if (dados.nome === "") delete dados.nome;
-    if (dados.descricao === "") delete dados.descricao;
-    if (dados.textoBotao === "") dados.textoBotao = "Pedir";
+    if ("horarios" in req.body) {
+      dados.horarios = normalizarHorarios(req.body.horarios);
+    }
 
     const atualizado = await prisma.restaurante.update({
       where: { id: RESTAURANTE_ID },
       data: dados,
-      select: Object.fromEntries(CAMPOS_CONFIG.map((campo) => [campo, true])),
+      select: SELECT_CONFIG,
     });
     res.json(atualizado);
   } catch (error) {
@@ -152,15 +196,130 @@ app.put("/config", autenticar, async (req, res) => {
   }
 });
 
+// ============ CATEGORIAS ============
+
+// pública: o site monta os filtros e a ordem dos blocos a partir daqui
+app.get("/categorias", async (req, res) => {
+  try {
+    const cats = await prisma.categoria.findMany({
+      where: { restauranteId: RESTAURANTE_ID },
+      orderBy: { ordem: "asc" },
+      select: { id: true, nome: true, ordem: true },
+    });
+    res.json(cats);
+  } catch {
+    res.status(500).json({ error: "Erro ao buscar categorias" });
+  }
+});
+
+app.post("/categorias", autenticar, async (req, res) => {
+  const nome = String(req.body.nome || "").trim();
+  if (!nome) return res.status(400).json({ error: "Informe o nome da categoria." });
+  try {
+    const max = await prisma.categoria.aggregate({
+      where: { restauranteId: RESTAURANTE_ID },
+      _max: { ordem: true },
+    });
+    const cat = await prisma.categoria.create({
+      data: { nome, ordem: (max._max.ordem ?? -1) + 1, restauranteId: RESTAURANTE_ID },
+      select: { id: true, nome: true, ordem: true },
+    });
+    res.status(201).json(cat);
+  } catch (e) {
+    if (e.code === "P2002") return res.status(409).json({ error: "Já existe uma categoria com esse nome." });
+    res.status(400).json({ error: "Erro ao criar categoria." });
+  }
+});
+
+// precisa vir ANTES de "/categorias/:id" para o Express não casar id = "ordenar"
+app.put("/categorias/ordenar", autenticar, async (req, res) => {
+  const ids = Array.isArray(req.body.ids) ? req.body.ids.map(Number) : [];
+  try {
+    await prisma.$transaction(
+      ids.map((id, i) =>
+        prisma.categoria.updateMany({
+          where: { id, restauranteId: RESTAURANTE_ID },
+          data: { ordem: i },
+        })
+      )
+    );
+    res.json({ ok: true });
+  } catch {
+    res.status(400).json({ error: "Erro ao reordenar categorias." });
+  }
+});
+
+app.put("/categorias/:id", autenticar, async (req, res) => {
+  const id = Number(req.params.id);
+  const nome = String(req.body.nome || "").trim();
+  if (!nome) return res.status(400).json({ error: "Informe o nome da categoria." });
+  try {
+    const r = await prisma.categoria.updateMany({
+      where: { id, restauranteId: RESTAURANTE_ID },
+      data: { nome },
+    });
+    if (!r.count) return res.status(404).json({ error: "Categoria não encontrada." });
+    res.json({ id, nome });
+  } catch (e) {
+    if (e.code === "P2002") return res.status(409).json({ error: "Já existe uma categoria com esse nome." });
+    res.status(400).json({ error: "Erro ao renomear categoria." });
+  }
+});
+
+app.delete("/categorias/:id", autenticar, async (req, res) => {
+  const id = Number(req.params.id);
+  try {
+    const cat = await prisma.categoria.findFirst({
+      where: { id, restauranteId: RESTAURANTE_ID },
+    });
+    if (!cat) return res.status(404).json({ error: "Categoria não encontrada." });
+
+    const n = await prisma.menuItem.count({ where: { categoriaId: id } });
+    if (n > 0) {
+      return res.status(409).json({
+        error: `Esta categoria tem ${n} ${n === 1 ? "item" : "itens"}. Mova ou exclua os itens antes.`,
+      });
+    }
+    await prisma.categoria.delete({ where: { id } });
+    res.status(204).send();
+  } catch {
+    res.status(400).json({ error: "Erro ao excluir categoria." });
+  }
+});
+
 // ============ ROTAS DE MENU ============
 
+const INCLUDE_CAT = { categoria: { select: { nome: true, ordem: true } } };
+
+// achata a relação: o front continua lendo `item.categoria` como string
+function achatar(item) {
+  const { categoria, ...resto } = item;
+  return { ...resto, categoria: categoria?.nome ?? null, categoriaOrdem: categoria?.ordem ?? 999 };
+}
+
+// pública: só os itens ativos, na ordem das categorias
 app.get("/menu", async (req, res) => {
   try {
     const itens = await prisma.menuItem.findMany({
-      where: { restauranteId: RESTAURANTE_ID },
-      orderBy: [{ categoria: "asc" }, { nome: "asc" }]
+      where: { restauranteId: RESTAURANTE_ID, ativo: true },
+      include: INCLUDE_CAT,
+      orderBy: [{ categoria: { ordem: "asc" } }, { nome: "asc" }],
     });
-    res.json(itens);
+    res.json(itens.map(achatar));
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao buscar menu" });
+  }
+});
+
+// painel: todos os itens, inclusive os inativos (precisa vir antes de "/menu/:id")
+app.get("/menu/admin", autenticar, async (req, res) => {
+  try {
+    const itens = await prisma.menuItem.findMany({
+      where: { restauranteId: RESTAURANTE_ID },
+      include: INCLUDE_CAT,
+      orderBy: [{ categoria: { ordem: "asc" } }, { nome: "asc" }],
+    });
+    res.json(itens.map(achatar));
   } catch (error) {
     res.status(500).json({ error: "Erro ao buscar menu" });
   }
@@ -169,64 +328,77 @@ app.get("/menu", async (req, res) => {
 app.get("/menu/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const item = await prisma.menuItem.findUnique({
-      where: { id }
-    });
+    const item = await prisma.menuItem.findUnique({ where: { id }, include: INCLUDE_CAT });
     if (!item) return res.status(404).json({ error: "Item não encontrado" });
-    res.json(item);
+    res.json(achatar(item));
   } catch (error) {
     res.status(500).json({ error: "Erro ao buscar item" });
   }
 });
 
 app.post("/menu", autenticar, async (req, res) => {
-  const { nome, descricao, preco, categoria, imagem, destaque, carrossel } = req.body;
+  const { nome, descricao, preco, categoriaId, imagem, destaque, ativo } = req.body;
   try {
-    if (!nome || preco === undefined || preco === "" || !categoria || !descricao) {
+    if (!nome || !descricao || preco === undefined || preco === "" || !categoriaId) {
       return res.status(400).json({ error: "Nome, descrição, preço e categoria são obrigatórios" });
     }
     if (Number.isNaN(Number(preco))) {
       return res.status(400).json({ error: "Preço precisa ser um número" });
     }
+    const cat = await prisma.categoria.findFirst({
+      where: { id: Number(categoriaId), restauranteId: RESTAURANTE_ID },
+    });
+    if (!cat) return res.status(400).json({ error: "Categoria inválida" });
+
     const novoItem = await prisma.menuItem.create({
       data: {
         nome,
         descricao,
         preco: Number(preco),
-        categoria,
+        categoriaId: cat.id,
         imagem: imagem || null,
         destaque: Boolean(destaque),
-        carrossel: Boolean(carrossel),
-        restauranteId: RESTAURANTE_ID
-      }
+        ativo: ativo === undefined ? true : Boolean(ativo),
+        restauranteId: RESTAURANTE_ID,
+      },
+      include: INCLUDE_CAT,
     });
-    res.status(201).json(novoItem);
+    res.status(201).json(achatar(novoItem));
   } catch (error) {
     res.status(400).json({ error: "Erro ao criar item" });
   }
 });
 
 app.put("/menu/:id", autenticar, async (req, res) => {
-  const { id } = req.params;
-  const { nome, descricao, preco, categoria, imagem, destaque, carrossel } = req.body;
+  const id = Number(req.params.id);
+  const { nome, descricao, preco, categoriaId, imagem, destaque, ativo } = req.body;
   try {
     if (preco !== undefined && preco !== "" && Number.isNaN(Number(preco))) {
       return res.status(400).json({ error: "Preço precisa ser um número" });
     }
+    let catId;
+    if (categoriaId !== undefined) {
+      const cat = await prisma.categoria.findFirst({
+        where: { id: Number(categoriaId), restauranteId: RESTAURANTE_ID },
+      });
+      if (!cat) return res.status(400).json({ error: "Categoria inválida" });
+      catId = cat.id;
+    }
     const atualizado = await prisma.menuItem.update({
-      where: { id: Number(id) },
+      where: { id },
       data: {
         nome: nome || undefined,
         descricao: descricao || undefined,
         preco: preco === undefined || preco === "" ? undefined : Number(preco),
-        categoria: categoria || undefined,
+        categoriaId: catId,
         // imagem vazia limpa o campo; ausente mantém o valor atual
         imagem: imagem === undefined ? undefined : imagem || null,
         destaque: destaque === undefined ? undefined : Boolean(destaque),
-        carrossel: carrossel === undefined ? undefined : Boolean(carrossel)
-      }
+        ativo: ativo === undefined ? undefined : Boolean(ativo),
+      },
+      include: INCLUDE_CAT,
     });
-    res.json(atualizado);
+    res.json(achatar(atualizado));
   } catch (error) {
     res.status(404).json({ error: "Item não encontrado" });
   }
@@ -235,9 +407,7 @@ app.put("/menu/:id", autenticar, async (req, res) => {
 app.delete("/menu/:id", autenticar, async (req, res) => {
   const { id } = req.params;
   try {
-    await prisma.menuItem.delete({
-      where: { id: Number(id) }
-    });
+    await prisma.menuItem.delete({ where: { id: Number(id) } });
     res.status(204).send();
   } catch (error) {
     res.status(404).json({ error: "Item não encontrado" });
@@ -247,55 +417,46 @@ app.delete("/menu/:id", autenticar, async (req, res) => {
 // ============ ROTAS DE ADMIN ============
 
 app.post("/admin/login", async (req, res) => {
-  const { email, senha } = req.body;
+  // aceita { usuario } (novo) ou { email } (compatibilidade)
+  const usuario = req.body.usuario ?? req.body.email;
+  const { senha } = req.body;
   try {
-    if (!email || !senha) {
-      return res.status(400).json({ error: "Email e senha são obrigatórios" });
+    if (!usuario || !senha) {
+      return res.status(400).json({ error: "Usuário e senha são obrigatórios" });
     }
-    const admin = await prisma.admin.findUnique({
-      where: { email }
-    });
-    if (!admin) {
-      return res.status(401).json({ error: "Email ou senha incorretos" });
-    }
-    const senhaValida = await bcrypt.compare(senha, admin.senhaHash);
-    if (!senhaValida) {
-      return res.status(401).json({ error: "Email ou senha incorretos" });
+    const admin = await prisma.admin.findUnique({ where: { usuario } });
+    if (!admin || !(await bcrypt.compare(senha, admin.senhaHash))) {
+      return res.status(401).json({ error: "Usuário ou senha incorretos" });
     }
     const token = jwt.sign(
-      { id: admin.id, email: admin.email, restauranteId: admin.restauranteId },
+      { id: admin.id, usuario: admin.usuario, restauranteId: admin.restauranteId },
       JWT_SECRET,
       { expiresIn: "7d" }
     );
-    res.json({ token, admin: { id: admin.id, email: admin.email } });
+    res.json({ token, admin: { id: admin.id, usuario: admin.usuario } });
   } catch (error) {
     res.status(500).json({ error: "Erro ao fazer login" });
   }
 });
 
-app.post("/admin/register", async (req, res) => {
-  const { email, senha, restauranteId } = req.body;
+// Criar outro admin só faz sentido para quem já entrou. Sem o autenticar
+// aqui, qualquer pessoa na internet poderia criar a própria conta de admin.
+app.post("/admin/register", autenticar, async (req, res) => {
+  const usuario = req.body.usuario ?? req.body.email;
+  const { senha, restauranteId } = req.body;
   try {
-    if (!email || !senha || !restauranteId) {
-      return res.status(400).json({ error: "Email, senha e restauranteId são obrigatórios" });
+    if (!usuario || !senha || !restauranteId) {
+      return res.status(400).json({ error: "Usuário, senha e restauranteId são obrigatórios" });
     }
-    const adminExistente = await prisma.admin.findUnique({
-      where: { email }
-    });
-    if (adminExistente) {
-      return res.status(400).json({ error: "Email já cadastrado" });
+    if (await prisma.admin.findUnique({ where: { usuario } })) {
+      return res.status(400).json({ error: "Usuário já cadastrado" });
     }
-    const senhaHash = await bcrypt.hash(senha, 10);
     const novoAdmin = await prisma.admin.create({
-      data: {
-        email,
-        senhaHash,
-        restauranteId
-      }
+      data: { usuario, senhaHash: await bcrypt.hash(senha, 10), restauranteId },
     });
     res.status(201).json({
       message: "Admin criado com sucesso",
-      admin: { id: novoAdmin.id, email: novoAdmin.email }
+      admin: { id: novoAdmin.id, usuario: novoAdmin.usuario },
     });
   } catch (error) {
     res.status(400).json({ error: "Erro ao registrar admin" });

@@ -18,46 +18,74 @@ model Restaurante {
   descricao String
   logo      String?
 
-  // Para onde o botao "Pedir" leva. O admin escolhe: iFood, Instagram,
-  // WhatsApp, Rappi... Se ficar vazio, o site usa o link do Instagram.
+  // MVP: o site nao processa pedidos. Estas duas colunas ficam guardadas
+  // (sem UI no painel) para reativar um botao de pedido no futuro sem migracao.
   linkPedido String?
   textoBotao String  @default("Pedir")
 
-  // Contato exibido no rodape do site
+  // Contato exibido no site (rodape + secao "Visite")
   instagram String?
   endereco  String?
   telefone  String?
   email     String?
-  horario   String?
+
+  // Horario de funcionamento, estruturado por dia da semana. Formato:
+  // [{ "dia": "seg", "abre": "08:00", "fecha": "18:00", "fechado": false }, ... 7 dias]
+  horarios  Json?
+
+  // Paragrafo "Sobre" da secao "Visite". Vazio = secao escondida.
+  sobre     String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  admins    Admin[]
-  menuItems MenuItem[]
+  admins     Admin[]
+  menuItems  MenuItem[]
+  categorias Categoria[]
+}
+
+// Categorias do cardapio, gerenciadas pelo dono no painel (criar, renomear,
+// reordenar, excluir). A ordem aqui define a ordem dos blocos no site.
+model Categoria {
+  id            Int         @id @default(autoincrement())
+  nome          String
+  ordem         Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  restauranteId Int
+  restaurante   Restaurante @relation(fields: [restauranteId], references: [id], onDelete: Cascade)
+  itens         MenuItem[]
+
+  @@unique([restauranteId, nome])
+  @@index([restauranteId])
 }
 
 model MenuItem {
-  id            Int     @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   nome          String
   descricao     String?
   preco         Float
-  categoria     String
   imagem        String?
   destaque      Boolean  @default(false)
-  // aparece no carrossel da capa
-  carrossel     Boolean  @default(false)
+  // item inativo nao aparece no site, mas continua no painel
+  ativo         Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  categoriaId   Int
+  categoria     Categoria @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
 
   restauranteId Int
   restaurante   Restaurante @relation(fields: [restauranteId], references: [id], onDelete: Cascade)
 
   @@index([restauranteId])
+  @@index([categoriaId])
 }
 
 model Admin {
   id            Int     @id @default(autoincrement())
-  email         String  @unique
+  usuario       String  @unique
   senhaHash     String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
