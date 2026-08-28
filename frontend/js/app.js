@@ -804,22 +804,8 @@ function itemAdminHTML(prato) {
 }
 
 function editorHTML(prato) {
-  const previa = prato.imagem
-    ? `<img src="${CONFIG.pastaImagens}${escapar(prato.imagem)}" alt=""
-            onerror="this.onerror=null;this.src='${IMAGEM_RESERVA}'">`
-    : `<div class="miniatura-vazia">${inicial(prato.nome)}</div>`;
-
   return `
     <form class="editor" data-id="${prato.id}" novalidate>
-      <div class="editor-imagem">
-        ${previa}
-        <span class="editor-legenda">
-          Imagem atual:<br>
-          <strong>${escapar(prato.imagem || "Nenhuma imagem")}</strong><br>
-          Apague o campo para remover a imagem.
-        </span>
-      </div>
-
       <label class="campo">
         <span>Nome <em>*</em></span>
         <input type="text" name="nome" value="${escapar(prato.nome)}" required>
@@ -840,21 +826,20 @@ function editorHTML(prato) {
         </label>
       </div>
       <div class="campo-imagem">
-        <label class="campo">
-          <span>Imagem <small>(apague para remover)</small></span>
-          <input type="text" name="imagem" list="imagens-disponiveis"
-                 value="${escapar(prato.imagem || "")}" placeholder="Nenhuma imagem">
-        </label>
+        <span class="campo-rotulo-solo">Foto do item</span>
+        <input type="hidden" name="imagem" value="${escapar(prato.imagem || "")}">
+        <figure class="previa" data-previa ${prato.imagem ? "" : "hidden"}>
+          <img alt="" src="${prato.imagem ? CONFIG.pastaImagens + escapar(prato.imagem) : ""}"
+               onerror="this.onerror=null;this.src='${IMAGEM_RESERVA}'">
+        </figure>
         <div class="envio">
           <label class="botao botao-contorno botao-pequeno rotulo-arquivo">
-            Enviar do computador
-            <input type="file" data-upload accept="image/jpeg,image/png,image/webp,image/avif" hidden>
+            Tirar foto ou enviar imagem
+            <input type="file" data-upload accept="image/*" hidden>
           </label>
-          <span class="envio-aviso" data-envio-aviso></span>
+          <button type="button" class="mini-acao" data-remover-foto ${prato.imagem ? "" : "hidden"}>Remover</button>
         </div>
-        <figure class="previa" data-previa ${prato.imagem ? "" : "hidden"}>
-          <img alt="" src="${prato.imagem ? CONFIG.pastaImagens + escapar(prato.imagem) : ""}">
-        </figure>
+        <span class="envio-aviso" data-envio-aviso></span>
       </div>
       <label class="marcador">
         <input type="checkbox" name="destaque" ${prato.destaque ? "checked" : ""}>
@@ -1129,6 +1114,7 @@ async function enviarImagem(entrada) {
   const aviso = bloco.querySelector("[data-envio-aviso]");
   const campo = bloco.querySelector('input[name="imagem"]');
   const previa = bloco.querySelector("[data-previa]");
+  const remover = bloco.querySelector("[data-remover-foto]");
 
   const dizer = (texto, tipo = "") => {
     aviso.textContent = texto;
@@ -1159,7 +1145,8 @@ async function enviarImagem(entrada) {
     campo.value = corpo.imagem;
     previa.hidden = false;
     previa.querySelector("img").src = CONFIG.pastaImagens + corpo.imagem;
-    dizer(`${Math.round(corpo.tamanho / 1024)} KB enviados`, "ok");
+    if (remover) remover.hidden = false;
+    dizer("Foto selecionada ✓", "ok");
     montarListaImagens();
   } catch (erro) {
     dizer(erro.message, "erro");
@@ -1168,13 +1155,17 @@ async function enviarImagem(entrada) {
   }
 }
 
-function acompanharPrevia(campo) {
-  const bloco = campo.closest(".campo-imagem");
+// Botão "Remover" da foto: limpa o valor e volta ao estado sem foto.
+function removerFoto(botao) {
+  const bloco = botao.closest(".campo-imagem");
   if (!bloco) return;
+  bloco.querySelector('input[name="imagem"]').value = "";
   const previa = bloco.querySelector("[data-previa]");
-  const nome = campo.value.trim();
-  previa.hidden = !nome;
-  if (nome) previa.querySelector("img").src = CONFIG.pastaImagens + nome;
+  previa.hidden = true;
+  previa.querySelector("img").src = "";
+  botao.hidden = true;
+  const aviso = bloco.querySelector("[data-envio-aviso]");
+  if (aviso) { aviso.textContent = ""; aviso.className = "envio-aviso"; }
 }
 
 /* ---------- prévia do mapa no painel ---------- */
@@ -1361,6 +1352,11 @@ $("#formulario-criar").addEventListener("submit", async (evento) => {
       }),
     });
     formulario.reset();
+    const fotoBloco = formulario.querySelector(".campo-imagem");
+    if (fotoBloco) {
+      const b = fotoBloco.querySelector("[data-remover-foto]");
+      if (b) removerFoto(b);
+    }
     montarSeletores();
     await carregarCardapio();
     notificar("Item criado com sucesso!");
@@ -1491,13 +1487,13 @@ $("#lista-destaques").addEventListener("change", (evento) => {
   if (caixa) alternarDestaque(caixa.dataset.destaque, caixa.checked);
 });
 
-/* ---------- upload e prévia (formulário de criar + editores) ---------- */
+/* ---------- foto do item (formulário de criar + editores) ---------- */
 
 $("#admin").addEventListener("change", (evento) => {
   if (evento.target.matches("input[type=file][data-upload]")) enviarImagem(evento.target);
 });
-$("#admin").addEventListener("input", (evento) => {
-  if (evento.target.matches('input[name="imagem"]')) acompanharPrevia(evento.target);
+$("#admin").addEventListener("click", (evento) => {
+  if (evento.target.matches("[data-remover-foto]")) removerFoto(evento.target);
 });
 
 /* ---------- busca ---------- */

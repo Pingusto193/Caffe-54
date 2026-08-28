@@ -294,19 +294,17 @@
               </label>
             </div>
             <div class="campo-imagem">
-              <label class="campo">
-                <span>Imagem <small>(opcional)</small></span>
-                <input type="text" name="imagem" list="imagens-disponiveis" placeholder="Nenhuma imagem">
-                <small class="dica">Envie uma foto do computador ou escolha uma já enviada.</small>
-              </label>
+              <span class="campo-rotulo-solo">Foto do item</span>
+              <input type="hidden" name="imagem">
+              <figure class="previa" data-previa hidden><img alt=""></figure>
               <div class="envio">
                 <label class="botao botao-contorno botao-pequeno rotulo-arquivo">
-                  Enviar do computador
-                  <input type="file" data-upload accept="image/jpeg,image/png,image/webp,image/avif" hidden>
+                  Tirar foto ou enviar imagem
+                  <input type="file" data-upload accept="image/*" hidden>
                 </label>
-                <span class="envio-aviso" data-envio-aviso></span>
+                <button type="button" class="mini-acao" data-remover-foto hidden>Remover</button>
               </div>
-              <figure class="previa" data-previa hidden><img alt=""></figure>
+              <span class="envio-aviso" data-envio-aviso></span>
             </div>
             <label class="marcador">
               <input type="checkbox" name="destaque">

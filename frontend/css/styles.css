@@ -2241,14 +2241,39 @@ html.abertura-ativa body { overflow: hidden; }
 
 .campo-imagem .campo { margin-bottom: 8px; }
 
+.campo-rotulo-solo {
+  display: block;
+  margin-bottom: 8px;
+  font-family: var(--ui);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--texto);
+}
+
 .envio {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  margin-top: 10px;
 }
 
 .rotulo-arquivo { cursor: pointer; }
+
+.mini-acao {
+  border: none;
+  background: none;
+  padding: 4px 2px;
+  font-family: var(--ui);
+  font-size: 13px;
+  color: #A33A31;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: transform 130ms var(--mola);
+}
+
+.mini-acao:active { transform: scale(0.93); }
+.mini-acao[hidden] { display: none; }
 
 .envio-aviso {
   font-family: var(--ui);
