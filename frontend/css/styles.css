@@ -1817,7 +1817,6 @@ html.abertura-ativa body { overflow: hidden; }
   stroke-linecap: round;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: ab-anel-traca 1100ms var(--mola) 200ms forwards;
 }
 
 /* O nome é UM elemento só (sem cópias). Ele se revela a partir de uma
@@ -1832,7 +1831,18 @@ html.abertura-ativa body { overflow: hidden; }
   opacity: 0;
   clip-path: inset(48% 0 48% 0);
   transform: translateY(4px);
-  animation: ab-nome 900ms var(--mola) 320ms forwards;
+}
+
+/* A entrada só começa quando o JS adiciona .tocar — assim o relógio da
+   animação e o timer da saída partem do MESMO instante. Sem isto, se o CSS
+   ou a fonte demoram (mobile), o CSS começa tarde e o timer da saída corta
+   a entrada pela metade. */
+.abertura.tocar .abertura-anel circle {
+  animation: ab-anel-traca 1100ms var(--mola) 120ms forwards;
+}
+
+.abertura.tocar .abertura-nome {
+  animation: ab-nome 900ms var(--mola) 240ms forwards;
 }
 
 @keyframes ab-nome {
@@ -1856,7 +1866,15 @@ html.abertura-ativa body { overflow: hidden; }
   --ab-furo: 0%;
   -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent var(--ab-furo), #000 calc(var(--ab-furo) + 0.6%));
           mask-image: radial-gradient(circle at 50% 50%, transparent var(--ab-furo), #000 calc(var(--ab-furo) + 0.6%));
-  animation: ab-furar 760ms cubic-bezier(0.7, 0, 0.3, 1) forwards;
+  /* ab-furar abre a íris; ab-veu-some é a rede de segurança para navegadores
+     sem suporte a @property (iOS < 16.4), onde a máscara não interpola. */
+  animation: ab-furar 760ms cubic-bezier(0.7, 0, 0.3, 1) forwards,
+             ab-veu-some 780ms linear forwards;
+}
+
+@keyframes ab-veu-some {
+  0%, 68% { opacity: 1; }
+  100%    { opacity: 0; }
 }
 
 .abertura.saindo .abertura-palco {
@@ -1929,7 +1947,7 @@ html.abertura-ativa body { overflow: hidden; }
    =================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
-  .abertura { display: none; }
+  #abertura { display: none; }
 
   [data-entrada],
   [data-entrada].entrou,

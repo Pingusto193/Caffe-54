@@ -430,7 +430,13 @@ function abrirPainel() {
   admin.classList.add("painel-entrando");
 
   mostrarPainel(estaLogado());
-  (estaLogado() ? $(`.admin-nav-item[data-secao="${secaoAtiva}"]`) : $("#login-usuario")).focus();
+  // Move o foco para dentro do painel (acessibilidade), mas NUNCA para um
+  // campo de texto: no celular isso abre o teclado sozinho. Sem login, foca
+  // o "x"; a pessoa toca no campo "Usuário" quando quiser escrever.
+  const alvoFoco = estaLogado()
+    ? $(`.admin-nav-item[data-secao="${secaoAtiva}"]`)
+    : $("#admin-fechar");
+  if (alvoFoco) alvoFoco.focus({ preventScroll: true });
 }
 
 function fecharPainel() {
@@ -1022,19 +1028,38 @@ function iniciarAbertura() {
   const abertura = $("#abertura");
   const raiz = document.documentElement;
 
-  if (semMovimento || raiz.classList.contains("sem-abertura")) {
+  if (semMovimento || raiz.classList.contains("sem-abertura") || !abertura) {
     if (abertura) abertura.remove();
+    raiz.classList.remove("abertura-ativa");
     liberarEntrada();
     return;
   }
 
-  setTimeout(() => {
-    abertura.classList.add("saindo");
-    raiz.classList.remove("abertura-ativa");
-    try { sessionStorage.setItem("caffe54:abertura", "1"); } catch {}
-    liberarEntrada();
-    setTimeout(() => abertura.remove(), 850);
-  }, 1900);
+  const ENTRADA = 1500;   // duração da entrada antes de a íris abrir
+  const SAIDA = 850;      // duração da íris/dissolvição
+
+  // Espera a fonte do nome (Playfair) para o texto não "pular" no meio da
+  // animação — mas com teto curto, senão trava em conexão ruim. A entrada
+  // e a saída partem do MESMO instante (o .tocar), então o timing não
+  // depende de quando o CSS/fonte terminou de carregar.
+  const pronto = Promise.race([
+    document.fonts ? document.fonts.ready : Promise.resolve(),
+    new Promise((r) => setTimeout(r, 900)),
+  ]);
+
+  pronto.then(() => {
+    if (!abertura.isConnected) { liberarEntrada(); return; }
+    requestAnimationFrame(() => {
+      abertura.classList.add("tocar");
+      setTimeout(() => {
+        abertura.classList.add("saindo");
+        raiz.classList.remove("abertura-ativa");
+        try { sessionStorage.setItem("caffe54:abertura", "1"); } catch {}
+        liberarEntrada();
+        setTimeout(() => abertura.remove(), SAIDA);
+      }, ENTRADA);
+    });
+  });
 }
 
 function liberarEntrada() {

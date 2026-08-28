@@ -18,10 +18,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lora:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 
+  <style>
+    /* Crítico: o véu da abertura precisa estar sólido já na primeira pintura,
+       antes do styles.css chegar. Sem isto, em conexão lenta (ou cold start
+       do host) a tela pisca o site antes do véu e a animação "não acontece". */
+    html.abertura-ativa, html.abertura-ativa body { overflow: hidden; height: auto; }
+    #abertura {
+      position: fixed; inset: 0; z-index: 500;
+      display: grid; place-items: center;
+      background: #2C3E2D;
+    }
+    html.sem-abertura #abertura { display: none; }
+  </style>
+
   <script>
-    // Roda antes da primeira pintura: sem isso a cortina pisca em quem
-    // já a viu nesta sessão. O destravamento do scroll tem prazo próprio,
-    // para não depender do app.js ter carregado.
+    // Roda antes da primeira pintura: decide se a cortina aparece (uma vez
+    // por sessão; nunca com "reduzir movimento"). O destravamento do scroll
+    // e a remoção do véu têm prazo próprio, caso o app.js não carregue.
     (function () {
       var raiz = document.documentElement;
       var pular = false;
@@ -29,7 +42,11 @@
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) pular = true;
       raiz.classList.add(pular ? "sem-abertura" : "abertura-ativa");
       if (!pular) {
-        setTimeout(function () { raiz.classList.remove("abertura-ativa"); }, 3200);
+        setTimeout(function () {
+          raiz.classList.remove("abertura-ativa");
+          var ab = document.getElementById("abertura");
+          if (ab && !ab.classList.contains("saindo")) ab.remove();
+        }, 4600);
       }
     })();
   </script>
