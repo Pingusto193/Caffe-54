@@ -781,10 +781,13 @@ h1, h2, h3 { margin: 0; }
   stroke-linecap: round;
 }
 
-/* login: cartão centrado na página do painel */
-.admin-login {
+/* login: cartão centrado na página do painel. O ID vence o `margin-bottom`
+   do .bloco (que vem depois no arquivo); margin:auto num flex-column absorve
+   a sobra em cima E embaixo, então o cartão fica centrado no espaço livre em
+   vez de flutuar no topo com um vazio embaixo. */
+#formulario-login.admin-login {
   width: min(380px, calc(100vw - 40px));
-  margin: clamp(24px, 8vh, 80px) auto;
+  margin: auto;
 }
 
 /* dashboard = faixa de abas + área de conteúdo rolável */
