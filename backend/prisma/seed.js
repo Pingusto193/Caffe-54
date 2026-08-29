@@ -26,6 +26,7 @@ const CONFIG_INICIAL = {
   email: null,
   horarios: null,
   sobre: null,
+  introCardapio: null,
 };
 
 // Ordem inicial das categorias (o dono reordena/renomeia/cria no painel).

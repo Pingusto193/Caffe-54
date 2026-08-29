@@ -168,6 +168,7 @@ function aplicarConfig() {
   }
 
   aplicarSobre();
+  aplicarIntroCardapio();
   aplicarVisite(horarioTexto);
   preencherFormulariosConfig();
 }
@@ -178,6 +179,15 @@ function aplicarSobre() {
   $$("[data-sobre]").forEach((el) => { el.textContent = sobre; });
   const secao = $("#sobre");
   if (secao) secao.hidden = !sobre;
+}
+
+// Frase de abertura do cardápio. Vazia = só o rótulo "O cardápio" aparece.
+function aplicarIntroCardapio() {
+  const texto = (config.introCardapio || "").trim();
+  $$("[data-intro-cardapio]").forEach((el) => {
+    el.textContent = texto;
+    el.hidden = !texto;
+  });
 }
 
 // Faixa compacta de localização + horário, logo depois da capa. Cada parte
@@ -203,7 +213,7 @@ function aplicarVisite(horarioTexto) {
 function preencherFormulariosConfig() {
   const info = $("#formulario-info");
   if (info) {
-    for (const campo of ["sobre", "instagram", "telefone", "email"]) {
+    for (const campo of ["sobre", "introCardapio", "instagram", "telefone", "email"]) {
       if (info.elements[campo]) info.elements[campo].value = config[campo] || "";
     }
   }
@@ -921,7 +931,10 @@ function montarCapa() {
     .map(
       (prato, i) => `
       <figure class="hero-foto${i === 0 ? " ativo" : ""}" data-foto-slide="${i}">
-        <img alt="${escapar(prato.nome)}" data-foto="${CONFIG.pastaImagens}${escapar(prato.imagem)}">
+        <button type="button" class="hero-foto-botao" data-prato="${prato.id}"
+                aria-label="Ver detalhes de ${escapar(prato.nome)}">
+          <img alt="${escapar(prato.nome)}" data-foto="${CONFIG.pastaImagens}${escapar(prato.imagem)}">
+        </button>
       </figure>`
     )
     .join("");
@@ -959,6 +972,9 @@ function carregarFoto(indice) {
 function escreverPrato(prato) {
   const caixa = $("#hero-prato");
   caixa.classList.add("trocando");
+  // o id vai junto: clicar no bloco abre a explicação desse prato
+  caixa.dataset.prato = prato.id;
+  caixa.setAttribute("aria-label", `Ver detalhes de ${prato.nome}`);
   setTimeout(() => {
     $("#hero-prato-categoria").textContent = prato.categoria || "";
     $("#hero-prato-nome").textContent = prato.nome;
@@ -1274,6 +1290,16 @@ $("#grade").addEventListener("click", (evento) => {
   const foto = evento.target.closest(".cartao-foto");
   if (foto) abrirLupa(foto.dataset.id);
 });
+
+// Na capa: clicar no nome/preço do destaque ou na foto emoldurada abre a
+// explicação do prato, igual ao card do cardápio.
+$("#hero-prato").addEventListener("click", (evento) => {
+  abrirLupa(evento.currentTarget.dataset.prato);
+});
+$("#hero-vitrine").addEventListener("click", (evento) => {
+  const botao = evento.target.closest("[data-prato]");
+  if (botao) abrirLupa(botao.dataset.prato);
+});
 $("#lupa-fechar").addEventListener("click", () => $("#lupa").close());
 $("#lupa").addEventListener("click", (evento) => {
   if (evento.target === $("#lupa")) $("#lupa").close();
@@ -1343,7 +1369,10 @@ $("#formulario-info").addEventListener("submit", (evento) => {
   evento.preventDefault();
   const d = Object.fromEntries(new FormData(evento.target));
   salvarConfig(
-    { sobre: d.sobre, instagram: d.instagram, telefone: d.telefone, email: d.email },
+    {
+      sobre: d.sobre, introCardapio: d.introCardapio,
+      instagram: d.instagram, telefone: d.telefone, email: d.email,
+    },
     "Informações salvas."
   );
 });

@@ -108,7 +108,7 @@ Localização · Horários · Conta**. Cada aba mostra só o seu conteúdo.
   aqui é a ordem dos blocos no site. Só exclui categoria sem itens.
 - **Destaques**: checklist dos itens que giram no carrossel da capa.
 - **Estabelecimento**: apresentação da casa (aparece logo depois da capa do site),
-  Instagram, telefone e e-mail (rodapé).
+  frase de abertura do cardápio, Instagram, telefone e e-mail (rodapé).
 - **Localização / Horários**: endereço + mapa e horário por dia. Vazios, somem do site.
 
 ## Seções do site

@@ -140,13 +140,15 @@ app.get("/imagens", autenticar, (req, res) => {
 // ============ CONFIGURAÇÃO DO SITE ============
 
 // Campos de texto que o dono edita no painel (aba "Informações" + "Localização").
-const CAMPOS_CONFIG = ["instagram", "endereco", "telefone", "email", "sobre"];
+const CAMPOS_CONFIG = [
+  "instagram", "endereco", "telefone", "email", "sobre", "introCardapio",
+];
 
 // O que o site lê (inclui nome/descrição, usados no título e rodapé, e os horários).
 const SELECT_CONFIG = {
   nome: true, descricao: true,
   instagram: true, endereco: true, telefone: true, email: true,
-  sobre: true, horarios: true,
+  sobre: true, introCardapio: true, horarios: true,
 };
 
 const DIAS_SEMANA = ["seg", "ter", "qua", "qui", "sex", "sab", "dom"];
@@ -184,9 +186,12 @@ app.put("/config", autenticar, async (req, res) => {
   try {
     const dados = {};
     for (const campo of CAMPOS_CONFIG) {
-      if (req.body[campo] !== undefined) {
-        dados[campo] = String(req.body[campo]).trim();
-      }
+      if (req.body[campo] === undefined) continue;
+      // campo apagado no painel (null ou "") grava NULL — sem isso um null
+      // virava a string "null" e o site exibia isso.
+      const bruto = req.body[campo];
+      const texto = bruto === null ? "" : String(bruto).trim();
+      dados[campo] = texto === "" ? null : texto;
     }
     if ("horarios" in req.body) {
       dados.horarios = normalizarHorarios(req.body.horarios);

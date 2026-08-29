@@ -91,11 +91,14 @@
       <div class="hero-texto">
         <h1 class="hero-titulo" data-nome-cafe data-entrada style="--atraso: 120ms">Caffè 54</h1>
 
-        <div class="hero-prato" id="hero-prato" data-entrada style="--atraso: 300ms" hidden>
+        <button type="button" class="hero-prato" id="hero-prato" data-entrada style="--atraso: 300ms" hidden>
           <span class="hero-prato-topo" id="hero-prato-categoria"></span>
           <span class="hero-prato-nome" id="hero-prato-nome"></span>
           <span class="hero-prato-preco" id="hero-prato-preco"></span>
-        </div>
+          <span class="hero-prato-ver">Ver detalhes
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+          </span>
+        </button>
 
         <div class="hero-controles" id="hero-controles" data-entrada style="--atraso: 480ms" hidden>
           <button type="button" class="hero-seta" id="hero-anterior" aria-label="Foto anterior">
@@ -139,10 +142,7 @@
   <!-- ============ INTRO DO CARDÁPIO ============ -->
   <div class="area secao-intro" data-entrada style="--atraso: 560ms">
     <p class="secao-rotulo">O cardápio</p>
-    <p class="secao-linha">
-      Brunch italiano, confeitaria artesanal e cafés especiais — feitos na casa,
-      em Florianópolis.
-    </p>
+    <p class="secao-linha" data-intro-cardapio hidden></p>
   </div>
 
   <!-- ============ FILTROS ============ -->
@@ -365,6 +365,17 @@
               Um texto sobre a casa — história, proposta, tipos de produto, o ambiente,
               os diferenciais. É a primeira coisa que a pessoa lê depois da capa do site.
               Em branco, essa parte não aparece.
+            </small>
+          </label>
+
+          <hr class="divisor">
+
+          <label class="campo">
+            <span>Frase de abertura do cardápio</span>
+            <textarea name="introCardapio" rows="3" maxlength="240"></textarea>
+            <small class="dica">
+              Uma linha curta que aparece logo acima do cardápio, embaixo do título
+              "O cardápio". Ex.: o tipo de comida que a casa serve. Em branco, não aparece.
             </small>
           </label>
 

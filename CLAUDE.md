@@ -46,8 +46,8 @@ scripts do `package.json`).
 
 | Rota | Auth | O quê |
 |---|---|---|
-| `GET /config` | não | nome, descrição, contato, `sobre`, `horarios` |
-| `PUT /config` | JWT | dono edita `instagram/endereco/telefone/email/sobre` + `horarios` |
+| `GET /config` | não | nome, descrição, contato, `sobre`, `introCardapio`, `horarios` |
+| `PUT /config` | JWT | dono edita `instagram/endereco/telefone/email/sobre/introCardapio` + `horarios`. Campo vazio (`""` ou `null`) grava **NULL** |
 | `GET /categorias` | não | categorias ordenadas por `ordem` |
 | `POST /categorias` | JWT | cria |
 | `PUT /categorias/ordenar` | JWT | reordena — body `{ ids: [...] }` (vem **antes** de `/:id`) |
@@ -69,7 +69,8 @@ scripts do `package.json`).
 - **`Restaurante`**: `nome`, `descricao` (usados no site, **sem UI no painel** — o dono
   não renomeia o café por enquanto), `linkPedido`/`textoBotao` (guardados, sem UI —
   prontos para um botão de pedido futuro), `instagram`, `endereco`, `telefone`,
-  `email`, `sobre`, `horarios` (JSON `[{dia,abre,fecha,fechado}]`, 7 dias).
+  `email`, `sobre`, `introCardapio` (frase acima dos filtros do cardápio),
+  `horarios` (JSON `[{dia,abre,fecha,fechado}]`, 7 dias).
 - **`Categoria`**: `nome`, `ordem`, `@@unique([restauranteId, nome])`. Gerenciada pelo
   painel (criar/renomear/reordenar/excluir). A `ordem` define a ordem dos blocos no site.
 - **`MenuItem`**: `nome`, `descricao`, `preco`, `imagem`, `destaque`, `ativo`,
@@ -142,10 +143,13 @@ Cada foto do carrossel só recebe `src` quando chega a vez dela. O giro para com
 mouse em cima e com a aba em segundo plano.
 
 Clicar na foto do card abre uma lupa (`<dialog>`) com a imagem grande, descrição e
-preço. Sem botão de pedido (MVP).
+preço. Sem botão de pedido (MVP). **Na capa, o bloco do destaque (`#hero-prato`, um
+`<button>`) e a foto emoldurada (`.hero-foto-botao`) abrem a mesma lupa** — o id do
+prato vai em `dataset.prato`, atualizado a cada slide por `escreverPrato()`.
 
 **Ordem da home**: capa → `#sobre` (apresentação, `config.sobre`) → `#visite` (faixa
-fina de localização) → intro do cardápio → filtros → grade.
+fina de localização) → intro do cardápio (`config.introCardapio`, some se vazia)
+→ filtros → grade.
 
 **Faixa `#visite`**: endereço + horário + link "Ver no mapa" (sem iframe — o mapa
 embutido saía grande demais). Estilo discreto/opaco, alinhado à esquerda, borda
@@ -223,8 +227,9 @@ localização com mapa, horários por dia), carrossel dos destaques, seção "Vi
 responsivo, console limpo.
 
 Pendente / de propósito:
-- Instagram, endereço, telefone, e-mail, horários e "sobre" **vazios** — o dono
-  preenche pelo painel. **Não inventar valores.**
+- Instagram, endereço, telefone, e-mail, horários, "sobre" e a frase de abertura do
+  cardápio (`introCardapio`) **vazios** — o dono preenche pelo painel.
+  **Não inventar valores.**
 - Fotos dos 7 itens removidos ainda estão em `images/cardapio/` (o dono pode
   reaproveitar Mesa/Experiência no hero/sobre).
 - `extrair-pdf.py` escreve `categoria` como string por página — desatualizado em

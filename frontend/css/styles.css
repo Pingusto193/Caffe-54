@@ -2015,15 +2015,66 @@ html.abertura-ativa body { overflow: hidden; }
 
 /* ---------- dados do prato ---------- */
 
+/* é um <button>: clicar abre a explicação do prato em destaque */
 .hero-prato {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 3px;
   max-width: 34ch;
   margin-top: 24px;
-  padding-top: 20px;
+  padding: 20px 0 0;
+  border: none;
   border-top: 1px solid rgba(249, 247, 242, 0.24);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
+
+.hero-prato-ver {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  font-family: var(--ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--ouro);
+  transition: gap var(--transicao);
+}
+
+.hero-prato-ver svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hero-prato:hover .hero-prato-ver { gap: 9px; }
+.hero-prato:hover .hero-prato-nome { color: #fff; }
+.hero-prato:active { transform: scale(0.985); }
+.hero-prato:focus-visible { outline: 2px solid var(--ouro); outline-offset: 6px; }
+
+/* foto emoldurada do destaque também é clicável */
+.hero-foto-botao {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hero-foto-botao:focus-visible { outline: 2px solid var(--ouro); outline-offset: 3px; }
+.hero-foto-botao img { transition: transform 520ms var(--mola); }
+.hero-foto:hover .hero-foto-botao img { transform: scale(1.05); }
 
 .hero-prato.trocando { opacity: 0; transform: translateY(6px); }
 
