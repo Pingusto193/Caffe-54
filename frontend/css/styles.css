@@ -616,19 +616,43 @@ h1, h2, h3 { margin: 0; }
 
 .rodape-texto a:hover { color: var(--ouro); }
 
-.rodape-instagram {
+/* redes e links do rodapé (lista montada pelo painel) */
+.rodape-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rodape-link {
   display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  font-family: var(--ui);
-  font-size: 15px;
-  font-weight: 500;
+  flex-direction: column;
+  gap: 1px;
   text-decoration: none;
   color: var(--creme);
   transition: color var(--transicao);
 }
 
-.rodape-instagram:hover { color: var(--ouro); }
+.rodape-link-rotulo {
+  font-family: var(--ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sage);
+  transition: color var(--transicao);
+}
+
+.rodape-link-valor {
+  font-family: var(--ui);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.rodape-link:hover { color: var(--ouro); }
+.rodape-link:hover .rodape-link-rotulo { color: var(--ouro); }
 
 .rodape-base {
   display: flex;
@@ -2397,6 +2421,60 @@ html.abertura-ativa body { overflow: hidden; }
 
 .mini-acao:active { transform: scale(0.93); }
 .mini-acao[hidden] { display: none; }
+
+/* ---------- lista de redes/links no painel ---------- */
+
+.links-lista {
+  list-style: none;
+  margin: 10px 0 12px;
+  padding: 0;
+}
+
+.link-linha {
+  display: grid;
+  grid-template-columns: minmax(120px, 150px) 1fr auto auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--borda);
+}
+
+.link-linha:last-child { border-bottom: none; }
+
+.link-linha.linha-movida { background: rgba(212, 165, 116, 0.14); }
+
+.link-tipo,
+.link-valor,
+.link-rotulo {
+  min-width: 0;
+  font-family: var(--ui);
+  font-size: 15px;
+  padding: 10px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  background: var(--branco);
+  color: var(--texto);
+}
+
+/* com "Outro" entra um campo a mais (o nome que aparece no site) */
+.link-linha:has(.link-rotulo) {
+  grid-template-columns: minmax(120px, 150px) minmax(0, 1fr) minmax(0, 1fr) auto auto auto;
+}
+
+.link-dica {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .link-linha,
+  .link-linha:has(.link-rotulo) {
+    grid-template-columns: 1fr 1fr auto auto auto;
+  }
+  .link-tipo { grid-column: 1 / -1; }
+  .link-valor,
+  .link-rotulo { grid-column: 1 / 3; }
+}
 
 .envio-aviso {
   font-family: var(--ui);

@@ -181,16 +181,9 @@
       </p>
     </div>
 
-    <div class="rodape-bloco" data-bloco="instagram">
-      <p class="rodape-rotulo">Instagram</p>
-      <a class="rodape-instagram" data-instagram href="#" target="_blank" rel="noopener">
-        <svg class="icone" viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/>
-          <circle cx="12" cy="12" r="4.2"/>
-          <circle cx="17.6" cy="6.4" r="1.2" class="preenchido"/>
-        </svg>
-        <span data-instagram-usuario></span>
-      </a>
+    <div class="rodape-bloco" data-bloco="links" hidden>
+      <p class="rodape-rotulo">Siga a casa</p>
+      <ul class="rodape-links" id="rodape-links"></ul>
     </div>
   </div>
 
@@ -385,11 +378,20 @@
 
           <hr class="divisor">
 
-          <label class="campo">
-            <span>Instagram</span>
-            <input type="text" name="instagram" placeholder="caffe54floripa">
-            <small class="dica">Só o nome de usuário, sem @. Vira um link no rodapé do site.</small>
-          </label>
+          <div class="campo">
+            <span class="campo-rotulo-solo">Redes e links</span>
+            <small class="dica">
+              Instagram, WhatsApp, Facebook, TikTok, o site da casa — o que você quiser.
+              Aparecem no rodapé do site, nesta ordem. Sem nenhum, o bloco não aparece.
+            </small>
+            <ul class="links-lista" id="links-lista"></ul>
+            <button type="button" class="botao botao-contorno botao-pequeno" id="link-adicionar">
+              + Adicionar link
+            </button>
+          </div>
+
+          <hr class="divisor">
+
           <div class="dupla">
             <label class="campo">
               <span>Telefone</span>
@@ -401,8 +403,8 @@
             </label>
           </div>
           <small class="dica">
-            Instagram, telefone e e-mail aparecem no rodapé do site. O e-mail de contato
-            não precisa ser o mesmo que você usa para entrar neste painel.
+            Telefone e e-mail aparecem no rodapé do site. O e-mail de contato não
+            precisa ser o mesmo que você usa para entrar neste painel.
           </small>
           <button type="submit" class="botao botao-ouro botao-largo">Salvar</button>
         </form>

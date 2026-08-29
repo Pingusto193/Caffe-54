@@ -46,8 +46,8 @@ scripts do `package.json`).
 
 | Rota | Auth | O quê |
 |---|---|---|
-| `GET /config` | não | nome, descrição, contato, `sobre`, `introCardapio`, `horarios` |
-| `PUT /config` | JWT | dono edita `instagram/endereco/telefone/email/sobre/introCardapio` + `horarios`. Campo vazio (`""` ou `null`) grava **NULL** |
+| `GET /config` | não | nome, descrição, contato, `sobre`, `introCardapio`, `horarios`, `links` |
+| `PUT /config` | JWT | dono edita `endereco/telefone/email/sobre/introCardapio` + `horarios` + `links`. Campo vazio (`""` ou `null`) grava **NULL** |
 | `GET /categorias` | não | categorias ordenadas por `ordem` |
 | `POST /categorias` | JWT | cria |
 | `PUT /categorias/ordenar` | JWT | reordena — body `{ ids: [...] }` (vem **antes** de `/:id`) |
@@ -68,8 +68,9 @@ scripts do `package.json`).
 
 - **`Restaurante`**: `nome`, `descricao` (usados no site, **sem UI no painel** — o dono
   não renomeia o café por enquanto), `linkPedido`/`textoBotao` (guardados, sem UI —
-  prontos para um botão de pedido futuro), `instagram`, `endereco`, `telefone`,
+  prontos para um botão de pedido futuro), `endereco`, `telefone`,
   `email`, `sobre`, `introCardapio` (frase acima dos filtros do cardápio),
+  `links` (JSON `[{tipo,valor,rotulo}]` — redes/links do rodapé, geridos no painel),
   `horarios` (JSON `[{dia,abre,fecha,fechado}]`, 7 dias).
 - **`Categoria`**: `nome`, `ordem`, `@@unique([restauranteId, nome])`. Gerenciada pelo
   painel (criar/renomear/reordenar/excluir). A `ordem` define a ordem dos blocos no site.
@@ -181,6 +182,13 @@ do mapa (iframe) vive só no painel, aba Localização (`#local-previa`).
 **Horários**: `formatarHorarios()` agrupa dias seguidos com o mesmo horário
 ("Seg a Sex: 08:00–18:00"). Usado na faixa `#visite` e no rodapé.
 
+**Redes e links do rodapé** (`config.links`): lista editável no painel, não mais um
+campo único de Instagram. Cada item é `{tipo, valor, rotulo}`; `TIPOS_LINK` (no
+`app.js`, espelhado no `server.js`) diz como o tipo vira URL e texto — o dono digita
+só o usuário/telefone e `lerLink()` monta o resto (WhatsApp ganha o DDI 55; um link
+completo colado vence o tipo). `rotulo` só vale com `tipo: "outro"`. Sem nenhum link,
+o bloco some. Máximo de 10.
+
 ## Painel administrativo
 
 `<aside class="admin">` = cabeçalho + (login **ou** dashboard). O dashboard é uma
@@ -249,7 +257,7 @@ localização com mapa, horários por dia), carrossel dos destaques, seção "Vi
 responsivo, console limpo.
 
 Pendente / de propósito:
-- Instagram, endereço, telefone, e-mail, horários, "sobre" e a frase de abertura do
+- Links/redes, endereço, telefone, e-mail, horários, "sobre" e a frase de abertura do
   cardápio (`introCardapio`) **vazios** — o dono preenche pelo painel.
   **Não inventar valores.**
 - Fotos dos 7 itens removidos ainda estão em `images/cardapio/` (o dono pode

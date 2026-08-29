@@ -20,7 +20,7 @@ const CONFIG_INICIAL = {
   linkPedido: null,
   textoBotao: "Pedir",
   // Preenchidos pelo dono no painel. Vazio = bloco escondido no site.
-  instagram: null,
+  links: null,
   endereco: null,
   telefone: null,
   email: null,

@@ -141,26 +141,17 @@ function aplicarConfig() {
     el.hidden = !config.email;
   });
 
-  const perfil = config.instagram
-    ? { url: `https://instagram.com/${config.instagram}`, arroba: `@${config.instagram}` }
-    : null;
-  $$("[data-instagram]").forEach((el) => {
-    el.href = perfil ? perfil.url : "#";
-    el.hidden = !perfil;
-  });
-  $$("[data-instagram-usuario]").forEach((el) => {
-    el.textContent = perfil ? perfil.arroba : "";
-  });
+  const links = montarLinksRodape();
 
   // sem nenhum dado de contato, o rodapé vira só a assinatura, centralizada
   const semContato = !(config.endereco || config.telefone || config.email ||
-                       config.instagram || horarioTexto);
+                       links || horarioTexto);
   document.querySelector(".rodape").classList.toggle("rodape-so-marca", semContato);
 
   const preenchido = {
     endereco: Boolean(config.endereco),
     contato: Boolean(config.telefone || config.email),
-    instagram: Boolean(config.instagram),
+    links: Boolean(links),
   };
   for (const [bloco, tem] of Object.entries(preenchido)) {
     const alvo = document.querySelector(`[data-bloco="${bloco}"]`);
@@ -171,6 +162,164 @@ function aplicarConfig() {
   aplicarIntroCardapio();
   aplicarVisite(horarioTexto);
   preencherFormulariosConfig();
+}
+
+/* ---------- redes e links do rodapé ---------- */
+
+// Cada tipo sabe virar URL e virar texto. O dono digita só o usuário/telefone;
+// se colar um link completo, ele é usado como está.
+const TIPOS_LINK = {
+  instagram: {
+    nome: "Instagram", dica: "só o usuário, sem @", exemplo: "caffe54floripa",
+    url: (v) => `https://instagram.com/${v.replace(/^@/, "")}`,
+    texto: (v) => `@${v.replace(/^@/, "")}`,
+  },
+  whatsapp: {
+    nome: "WhatsApp", dica: "com DDD", exemplo: "48 99999-0000",
+    url: (v) => `https://wa.me/${comDDI(v)}`,
+    texto: (v) => v,
+  },
+  facebook: {
+    nome: "Facebook", dica: "usuário ou nome da página", exemplo: "caffe54",
+    url: (v) => `https://facebook.com/${v.replace(/^@/, "")}`,
+    texto: (v) => v.replace(/^@/, ""),
+  },
+  tiktok: {
+    nome: "TikTok", dica: "só o usuário, sem @", exemplo: "caffe54",
+    url: (v) => `https://tiktok.com/@${v.replace(/^@/, "")}`,
+    texto: (v) => `@${v.replace(/^@/, "")}`,
+  },
+  twitter: {
+    nome: "X / Twitter", dica: "só o usuário, sem @", exemplo: "caffe54",
+    url: (v) => `https://x.com/${v.replace(/^@/, "")}`,
+    texto: (v) => `@${v.replace(/^@/, "")}`,
+  },
+  youtube: {
+    nome: "YouTube", dica: "o @ do canal ou o link", exemplo: "@caffe54",
+    url: (v) => `https://youtube.com/${v.startsWith("@") ? v : "@" + v}`,
+    texto: (v) => (v.startsWith("@") ? v : `@${v}`),
+  },
+  site: {
+    nome: "Site", dica: "o endereço completo", exemplo: "caffe54.com.br",
+    url: (v) => v,
+    texto: (v) => v.replace(/^https?:\/\//, "").replace(/\/$/, ""),
+  },
+  outro: {
+    nome: "Outro", dica: "o link completo", exemplo: "https://…",
+    url: (v) => v,
+    texto: (v) => v.replace(/^https?:\/\//, "").replace(/\/$/, ""),
+  },
+};
+
+// telefone brasileiro → formato do wa.me (55 + dígitos)
+function comDDI(valor) {
+  const digitos = valor.replace(/\D/g, "");
+  return digitos.startsWith("55") ? digitos : `55${digitos}`;
+}
+
+// Monta o href e o texto de um link salvo. Link completo colado vence o tipo.
+function lerLink(link) {
+  const tipo = TIPOS_LINK[link.tipo] || TIPOS_LINK.outro;
+  const valor = (link.valor || "").trim();
+  if (!valor) return null;
+
+  const colouLink = /^https?:\/\//i.test(valor);
+  const url = colouLink ? valor : tipo.url(valor);
+  const rotulo = link.tipo === "outro" && link.rotulo ? link.rotulo : tipo.nome;
+
+  return {
+    url: /^https?:\/\//i.test(url) ? url : `https://${url}`,
+    rotulo,
+    texto: colouLink ? TIPOS_LINK.outro.texto(valor) : tipo.texto(valor),
+  };
+}
+
+// Desenha a lista do rodapé. Devolve quantos links entraram (0 = bloco escondido).
+function montarLinksRodape() {
+  const lista = $("#rodape-links");
+  if (!lista) return 0;
+
+  const links = (Array.isArray(config.links) ? config.links : [])
+    .map(lerLink)
+    .filter(Boolean);
+
+  lista.innerHTML = links
+    .map(
+      (l) => `
+      <li>
+        <a class="rodape-link" href="${escapar(l.url)}" target="_blank" rel="noopener">
+          <span class="rodape-link-rotulo">${escapar(l.rotulo)}</span>
+          <span class="rodape-link-valor">${escapar(l.texto)}</span>
+        </a>
+      </li>`
+    )
+    .join("");
+
+  return links.length;
+}
+
+/* ---------- lista de links no painel ---------- */
+
+const MAX_LINKS = 10;
+
+// Rascunho editado no painel; só vira `config.links` ao salvar o formulário.
+// `chave` é um id local estável — a animação de reordenar (animarReordenacao)
+// casa as linhas por `dataset.id`, e o índice muda ao mover.
+let linksRascunho = [];
+let proximaChaveLink = 1;
+
+function montarLinksAdmin() {
+  const lista = $("#links-lista");
+  if (!lista) return;
+
+  linksRascunho = (Array.isArray(config.links) ? config.links : []).map((l) => ({
+    chave: proximaChaveLink++,
+    tipo: l.tipo || "instagram",
+    valor: l.valor || "",
+    rotulo: l.rotulo || "",
+  }));
+
+  desenharLinksAdmin();
+}
+
+function desenharLinksAdmin() {
+  const lista = $("#links-lista");
+  if (!lista) return;
+
+  const opcoes = (escolhido) =>
+    Object.entries(TIPOS_LINK)
+      .map(([chave, t]) =>
+        `<option value="${chave}"${chave === escolhido ? " selected" : ""}>${escapar(t.nome)}</option>`)
+      .join("");
+
+  lista.innerHTML = linksRascunho
+    .map((link, i) => {
+      const tipo = TIPOS_LINK[link.tipo] || TIPOS_LINK.outro;
+      return `
+      <li class="link-linha" data-id="${link.chave}">
+        <select class="link-tipo" data-campo="tipo" aria-label="Tipo do link ${i + 1}">
+          ${opcoes(link.tipo)}
+        </select>
+        ${link.tipo === "outro"
+          ? `<input type="text" class="link-rotulo" data-campo="rotulo"
+                    value="${escapar(link.rotulo)}" placeholder="Nome"
+                    aria-label="Nome que aparece no site">`
+          : ""}
+        <input type="text" class="link-valor" data-campo="valor"
+               value="${escapar(link.valor)}" placeholder="${escapar(tipo.exemplo)}"
+               aria-label="Endereço do link ${i + 1}">
+        <button type="button" class="mini-btn link-subir" data-mover="-1"
+                aria-label="Subir" ${i === 0 ? "disabled" : ""}>&#9650;</button>
+        <button type="button" class="mini-btn link-descer" data-mover="1"
+                aria-label="Descer" ${i === linksRascunho.length - 1 ? "disabled" : ""}>&#9660;</button>
+        <button type="button" class="mini-acao" data-remover-link aria-label="Remover">Remover</button>
+        <small class="dica link-dica">${escapar(tipo.dica)}</small>
+      </li>`;
+    })
+    .join("");
+
+  const botao = $("#link-adicionar");
+  if (botao) botao.disabled = linksRascunho.length >= MAX_LINKS;
 }
 
 // "Sobre o estabelecimento" — logo depois da capa. Vazio = seção escondida.
@@ -213,10 +362,11 @@ function aplicarVisite(horarioTexto) {
 function preencherFormulariosConfig() {
   const info = $("#formulario-info");
   if (info) {
-    for (const campo of ["sobre", "introCardapio", "instagram", "telefone", "email"]) {
+    for (const campo of ["sobre", "introCardapio", "telefone", "email"]) {
       if (info.elements[campo]) info.elements[campo].value = config[campo] || "";
     }
   }
+  montarLinksAdmin();
   const local = $("#formulario-local");
   if (local && local.elements.endereco) local.elements.endereco.value = config.endereco || "";
 
@@ -1536,10 +1686,73 @@ $("#formulario-info").addEventListener("submit", (evento) => {
   salvarConfig(
     {
       sobre: d.sobre, introCardapio: d.introCardapio,
-      instagram: d.instagram, telefone: d.telefone, email: d.email,
+      telefone: d.telefone, email: d.email,
+      // a `chave` é só do painel — não vai para o banco
+      links: linksRascunho
+        .filter((l) => l.valor.trim())
+        .map(({ tipo, valor, rotulo }) => ({ tipo, valor, rotulo })),
     },
     "Informações salvas."
   );
+});
+
+/* ---------- lista de links (painel) ---------- */
+
+// índice do link a partir da linha clicada (pela chave, não pela posição)
+function indiceDoLink(linha) {
+  return linksRascunho.findIndex((l) => String(l.chave) === linha.dataset.id);
+}
+
+$("#link-adicionar").addEventListener("click", () => {
+  if (linksRascunho.length >= MAX_LINKS) return;
+  linksRascunho.push({ chave: proximaChaveLink++, tipo: "instagram", valor: "", rotulo: "" });
+  desenharLinksAdmin();
+  // foca o campo do link recém-criado
+  const ultimo = $("#links-lista").lastElementChild;
+  if (ultimo) ultimo.querySelector(".link-valor").focus();
+});
+
+$("#links-lista").addEventListener("input", (evento) => {
+  const linha = evento.target.closest(".link-linha");
+  const campo = evento.target.dataset.campo;
+  if (!linha || !campo) return;
+  const i = indiceDoLink(linha);
+  if (i >= 0) linksRascunho[i][campo] = evento.target.value;
+});
+
+// trocar o tipo muda a dica e o exemplo — e mostra/esconde o campo de nome
+$("#links-lista").addEventListener("change", (evento) => {
+  const linha = evento.target.closest(".link-linha");
+  if (!linha || evento.target.dataset.campo !== "tipo") return;
+  const i = indiceDoLink(linha);
+  if (i < 0) return;
+  linksRascunho[i].tipo = evento.target.value;
+  desenharLinksAdmin();
+});
+
+$("#links-lista").addEventListener("click", (evento) => {
+  const linha = evento.target.closest(".link-linha");
+  if (!linha) return;
+  const i = indiceDoLink(linha);
+  if (i < 0) return;
+
+  if (evento.target.matches("[data-remover-link]")) {
+    linksRascunho.splice(i, 1);
+    desenharLinksAdmin();
+    return;
+  }
+
+  const mover = evento.target.closest("[data-mover]");
+  if (!mover) return;
+  const destino = i + Number(mover.dataset.mover);
+  if (destino < 0 || destino >= linksRascunho.length) return;
+
+  // mesma animação de deslizar das categorias
+  animarReordenacao($("#links-lista"), () => {
+    const [item] = linksRascunho.splice(i, 1);
+    linksRascunho.splice(destino, 0, item);
+    desenharLinksAdmin();
+  }, linksRascunho[i].chave);
 });
 
 $("#formulario-local").addEventListener("submit", (evento) => {

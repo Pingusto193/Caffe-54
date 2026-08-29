@@ -24,10 +24,14 @@ model Restaurante {
   textoBotao String  @default("Pedir")
 
   // Contato exibido no site (rodape + secao "Visite")
-  instagram String?
   endereco  String?
   telefone  String?
   email     String?
+
+  // Redes e links do rodape, na ordem em que o dono organizou. Formato:
+  // [{ "tipo": "instagram", "valor": "caffe54", "rotulo": null }, ...]
+  // "tipo" sai de TIPOS_LINK no server.js; "rotulo" so e usado com tipo "outro".
+  links     Json?
 
   // Horario de funcionamento, estruturado por dia da semana. Formato:
   // [{ "dia": "seg", "abre": "08:00", "fecha": "18:00", "fechado": false }, ... 7 dias]

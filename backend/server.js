@@ -140,16 +140,42 @@ app.get("/imagens", autenticar, (req, res) => {
 // ============ CONFIGURAÇÃO DO SITE ============
 
 // Campos de texto que o dono edita no painel (aba "Informações" + "Localização").
-const CAMPOS_CONFIG = [
-  "instagram", "endereco", "telefone", "email", "sobre", "introCardapio",
-];
+const CAMPOS_CONFIG = ["endereco", "telefone", "email", "sobre", "introCardapio"];
 
 // O que o site lê (inclui nome/descrição, usados no título e rodapé, e os horários).
 const SELECT_CONFIG = {
   nome: true, descricao: true,
-  instagram: true, endereco: true, telefone: true, email: true,
-  sobre: true, introCardapio: true, horarios: true,
+  endereco: true, telefone: true, email: true,
+  sobre: true, introCardapio: true, horarios: true, links: true,
 };
+
+// Redes/links do rodapé. O front monta a URL a partir do tipo + valor.
+const TIPOS_LINK = new Set([
+  "instagram", "whatsapp", "facebook", "tiktok", "twitter",
+  "youtube", "site", "outro",
+]);
+
+const MAX_LINKS = 10;
+
+// Normaliza a lista de links vinda do painel. Fora do formato → null.
+function normalizarLinks(entrada) {
+  if (!Array.isArray(entrada)) return null;
+
+  const limpo = entrada
+    .filter((l) => l && TIPOS_LINK.has(l.tipo) && String(l.valor ?? "").trim())
+    .slice(0, MAX_LINKS)
+    .map((l) => {
+      const rotulo = String(l.rotulo ?? "").trim().slice(0, 40);
+      return {
+        tipo: l.tipo,
+        valor: String(l.valor).trim().slice(0, 300),
+        // rótulo próprio só faz sentido em "outro"
+        rotulo: l.tipo === "outro" && rotulo ? rotulo : null,
+      };
+    });
+
+  return limpo.length ? limpo : null;
+}
 
 const DIAS_SEMANA = ["seg", "ter", "qua", "qui", "sex", "sab", "dom"];
 
@@ -195,6 +221,9 @@ app.put("/config", autenticar, async (req, res) => {
     }
     if ("horarios" in req.body) {
       dados.horarios = normalizarHorarios(req.body.horarios);
+    }
+    if ("links" in req.body) {
+      dados.links = normalizarLinks(req.body.links);
     }
 
     const atualizado = await prisma.restaurante.update({
