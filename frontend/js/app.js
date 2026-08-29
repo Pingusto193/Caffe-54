@@ -1118,10 +1118,40 @@ function trocarCategoria(categoria) {
    =================================================================== */
 
 const LIMITE_MB = 6;
+const LADO_MAXIMO = 1600;   // px — suficiente para os cards e a lupa
+
+// Foto de celular vem enorme (12 MP, 4–8 MB) e, no iPhone, muitas vezes em
+// HEIC — que o servidor não aceita. Reduzimos e convertemos para JPEG aqui no
+// navegador antes de enviar. Assim qualquer foto do celular passa.
+async function prepararFoto(arquivo) {
+  let fonte;
+  try {
+    // imageOrientation respeita o EXIF: foto na vertical não chega deitada.
+    fonte = await createImageBitmap(arquivo, { imageOrientation: "from-image" });
+  } catch {
+    return null;   // formato que o navegador não decodifica — envia como veio
+  }
+
+  const escala = Math.min(1, LADO_MAXIMO / Math.max(fonte.width, fonte.height));
+  const largura = Math.round(fonte.width * escala);
+  const altura = Math.round(fonte.height * escala);
+
+  const tela = document.createElement("canvas");
+  tela.width = largura;
+  tela.height = altura;
+  tela.getContext("2d").drawImage(fonte, 0, 0, largura, altura);
+  fonte.close?.();
+
+  const bolha = await new Promise((ok) => tela.toBlob(ok, "image/jpeg", 0.86));
+  if (!bolha) return null;
+
+  const nome = arquivo.name.replace(/\.[^.]+$/, "") || "foto";
+  return new File([bolha], `${nome}.jpg`, { type: "image/jpeg" });
+}
 
 async function enviarImagem(entrada) {
-  const arquivo = entrada.files && entrada.files[0];
-  if (!arquivo) return;
+  const escolhido = entrada.files && entrada.files[0];
+  if (!escolhido) return;
 
   const bloco = entrada.closest(".campo-imagem");
   const aviso = bloco.querySelector("[data-envio-aviso]");
@@ -1133,6 +1163,9 @@ async function enviarImagem(entrada) {
     aviso.textContent = texto;
     aviso.className = `envio-aviso ${tipo}`;
   };
+
+  dizer("Preparando a foto…");
+  const arquivo = (await prepararFoto(escolhido)) || escolhido;
 
   if (arquivo.size > LIMITE_MB * 1024 * 1024) {
     dizer(`A imagem passa de ${LIMITE_MB} MB.`, "erro");

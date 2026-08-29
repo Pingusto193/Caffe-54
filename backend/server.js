@@ -68,8 +68,15 @@ function autenticar(req, res, next) {
 const PASTA_IMAGENS = path.join(__dirname, "..", "frontend", "images", "cardapio");
 fs.mkdirSync(PASTA_IMAGENS, { recursive: true });
 
-const TIPOS_ACEITOS = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
-const EXTENSAO = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/avif": ".avif" };
+// heic/heif: o iPhone envia assim quando o navegador não converte. O frontend
+// já reduz e converte para JPEG antes de enviar; isto é a rede de segurança.
+const TIPOS_ACEITOS = new Set([
+  "image/jpeg", "image/png", "image/webp", "image/avif", "image/heic", "image/heif",
+]);
+const EXTENSAO = {
+  "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp",
+  "image/avif": ".avif", "image/heic": ".heic", "image/heif": ".heif",
+};
 
 // Nome de arquivo seguro: sem acento, sem espaço, sem caminho.
 // O multer entrega originalname em latin1; sem reconverter, "Café" vira "CafÃ©".
@@ -98,7 +105,7 @@ const upload = multer({
   limits: { fileSize: 6 * 1024 * 1024, files: 1 },
   fileFilter: (req, arquivo, pronto) => {
     if (!TIPOS_ACEITOS.has(arquivo.mimetype)) {
-      return pronto(new Error("Formato não aceito. Use JPG, PNG, WebP ou AVIF."));
+      return pronto(new Error("Formato de imagem não aceito. Tente outra foto."));
     }
     pronto(null, true);
   },
@@ -122,7 +129,7 @@ app.get("/imagens", autenticar, (req, res) => {
   try {
     const arquivos = fs
       .readdirSync(PASTA_IMAGENS)
-      .filter((nome) => /\.(jpe?g|png|webp|avif)$/i.test(nome))
+      .filter((nome) => /\.(jpe?g|png|webp|avif|heic|heif)$/i.test(nome))
       .sort();
     res.json(arquivos);
   } catch {
