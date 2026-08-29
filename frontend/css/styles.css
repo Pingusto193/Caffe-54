@@ -37,7 +37,11 @@
 /* [hidden] precisa vencer os display: flex/grid dos componentes */
 [hidden] { display: none !important; }
 
-html { scroll-behavior: smooth; }
+/* Rolagem suave só no desktop. No celular ela briga com o gesto do dedo
+   (momentum, "puxar para atualizar") e deixa o scroll travado/arrastado. */
+@media (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
 
 /* Barra de rolagem escondida (continua rolando com roda/toque/teclado) */
 html, .admin-conteudo, .admin-nav, .filtros {
@@ -710,6 +714,11 @@ h1, h2, h3 { margin: 0; }
   --oy: 0%;
 }
 
+/* fundo travado enquanto o painel está aberto (classe no <html>, não style
+   inline no body — não fica preso se o painel fechar por um caminho atípico) */
+html.fundo-travado,
+html.fundo-travado body { overflow: hidden; }
+
 .admin[hidden] { display: none; }
 
 .admin.painel-entrando {
@@ -805,6 +814,8 @@ h1, h2, h3 { margin: 0; }
   padding: 12px max(16px, calc((100% - 820px) / 2));
   overflow-x: auto;
   scrollbar-width: none;
+  touch-action: pan-x;              /* gesto vertical passa direto p/ o painel */
+  overscroll-behavior-x: contain;
   background: var(--branco);
   border-bottom: 1px solid var(--borda);
 }
@@ -840,6 +851,7 @@ h1, h2, h3 { margin: 0; }
 .admin-conteudo {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;   /* rolar até o fim não "vaza" p/ a página */
   padding: 26px 22px 40px;
 }
 
@@ -1482,12 +1494,15 @@ h1, h2, h3 { margin: 0; }
   .hero-conteudo > * { max-width: none; }
   .hero-titulo { font-size: 34px; }
 
-  /* filtros com rolagem horizontal */
+  /* filtros com rolagem horizontal. touch-action: pan-x deixa claro para o
+     navegador que só o gesto horizontal é dessa tira — o vertical passa
+     direto para a página (sem aquele atraso/travada ao subir e descer). */
   .filtros {
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
     padding-block: 16px;
   }
   .filtros::-webkit-scrollbar { display: none; }

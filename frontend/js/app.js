@@ -416,6 +416,19 @@ function origemDoCirculo(elemento) {
 // O painel abre como uma "outra página": um círculo cresce a partir do
 // botão da engrenagem e toma a tela toda. Ao fechar, o círculo recolhe
 // para dentro do "x".
+// Trava/destrava a rolagem do fundo por classe no <html> (não por style inline
+// no body — esse ficava preso quando o painel fechava por um caminho atípico
+// ou quando a página voltava do cache do navegador).
+function travarFundo(sim) {
+  document.documentElement.classList.toggle("fundo-travado", sim);
+}
+
+// Rede de segurança: se a página some e volta (voltar/avançar, cache), garante
+// que a rolagem não ficou travada de uma sessão anterior.
+window.addEventListener("pageshow", () => {
+  if ($("#admin").hidden) travarFundo(false);
+});
+
 function abrirPainel() {
   const admin = $("#admin");
   clearTimeout(fechandoPainel);
@@ -424,7 +437,7 @@ function abrirPainel() {
   origemDoCirculo($("#gatilho-admin"));
 
   admin.hidden = false;
-  document.body.style.overflow = "hidden";
+  travarFundo(true);
   admin.classList.remove("painel-entrando");
   void admin.offsetWidth;
   admin.classList.add("painel-entrando");
@@ -444,7 +457,7 @@ function fecharPainel() {
   origemDoCirculo($("#admin-fechar"));   // recolhe para o "x"
   admin.classList.remove("painel-entrando");
   admin.classList.add("painel-saindo");
-  document.body.style.overflow = "";
+  travarFundo(false);
   $("#gatilho-admin").focus();
   clearTimeout(fechandoPainel);
   fechandoPainel = setTimeout(() => {
