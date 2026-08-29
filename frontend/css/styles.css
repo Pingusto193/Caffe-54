@@ -1670,6 +1670,57 @@ html.fundo-travado body { overflow: hidden; }
   backdrop-filter: blur(3px);
 }
 
+.lupa[open]::backdrop { animation: lupa-veu 320ms ease forwards; }
+.lupa.saindo::backdrop { animation: lupa-veu 260ms ease reverse forwards; }
+
+@keyframes lupa-veu { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- a foto que voa (shared element) ---------- */
+
+/* Sai do retângulo da foto clicada e chega no da foto grande. object-fit:cover
+   faz a imagem RE-CORTAR na mudança de proporção, em vez de esticar. */
+.lupa-voo {
+  position: fixed;
+  z-index: 5;
+  margin: 0;
+  object-fit: cover;
+  border-radius: 6px;
+  pointer-events: none;
+  will-change: top, left, width, height;
+}
+
+.lupa-voo[hidden] { display: none; }
+
+/* durante o voo o conteúdo real espera; o JS libera no fim */
+.lupa.voando .lupa-figura { opacity: 0; }
+
+.lupa.voando .lupa-texto {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.lupa-figura { transition: opacity 200ms ease; }
+
+.lupa-texto {
+  transition: opacity 300ms var(--mola), transform 300ms var(--mola);
+}
+
+/* fallback: sem foto para voar, a caixa cresce do ponto clicado */
+.lupa.zoom {
+  transform-origin: var(--lx, 50%) var(--ly, 50%);
+  animation: lupa-zoom 380ms var(--mola);
+}
+
+@keyframes lupa-zoom {
+  from { opacity: 0; transform: scale(0.65); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.lupa.saindo {
+  transform-origin: var(--lx, 50%) var(--ly, 50%);
+  animation: lupa-zoom 260ms var(--saida) reverse forwards;
+}
+
 .lupa-conteudo {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
@@ -1978,6 +2029,12 @@ html.abertura-ativa body { overflow: hidden; }
 
   #grade.trocando { opacity: 1; transform: none; }
   .filtro[aria-selected="true"] { animation: none; }
+
+  .lupa.zoom, .lupa.saindo { animation: none; }
+  .lupa[open]::backdrop, .lupa.saindo::backdrop { animation: none; }
+  .lupa-voo { display: none !important; }
+  .lupa.voando .lupa-figura,
+  .lupa.voando .lupa-texto { opacity: 1; transform: none; }
 }
 
 /* ===================================================================

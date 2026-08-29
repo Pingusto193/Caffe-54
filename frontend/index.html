@@ -201,6 +201,10 @@
 
 <!-- ============ FOTO AMPLIADA ============ -->
 <dialog class="lupa" id="lupa" aria-labelledby="lupa-nome">
+  <!-- clone que voa da foto clicada até a foto grande. Fica DENTRO do <dialog>
+       para herdar a top layer; é position:fixed, então o overflow da .lupa
+       não o recorta. -->
+  <img class="lupa-voo" id="lupa-voo" alt="" aria-hidden="true" hidden>
   <button type="button" class="lupa-fechar" id="lupa-fechar" aria-label="Fechar">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
   </button>

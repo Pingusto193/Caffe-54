@@ -147,6 +147,28 @@ preço. Sem botão de pedido (MVP). **Na capa, o bloco do destaque (`#hero-prato
 `<button>`) e a foto emoldurada (`.hero-foto-botao`) abrem a mesma lupa** — o id do
 prato vai em `dataset.prato`, atualizado a cada slide por `escreverPrato()`.
 
+**A foto clicada vira a lupa** (shared element, 520 ms). Um clone `#lupa-voo` sai do
+retângulo da foto de origem e chega no de `#lupa-imagem`, animando `left/top/width/height`
+com a Web Animations API; o `object-fit: cover` re-corta na mudança de proporção em vez
+de esticar. Três cuidados:
+
+1. O clone fica **dentro do `<dialog>`** — `showModal()` põe o diálogo na *top layer*,
+   acima de tudo; um clone no `<body>` sumiria atrás do backdrop.
+2. Ele é `position: fixed`, então o `overflow: hidden` da `.lupa` **não o recorta**
+   (o bloco contentor dele é a viewport). Não pôr `transform`/`filter`/`contain` na
+   `.lupa`, senão passa a recortar.
+3. `fotoDeOrigem()` resolve a origem: o `<img>` de dentro do elemento; para
+   `#hero-prato` (que só tem texto) é a foto emoldurada no desktop e
+   `.hero-slide.ativo` no celular — o **contêiner**, porque o `<img>` do fundo tem
+   `transform: scale()` que entraria no `getBoundingClientRect()`.
+
+`.voando` sai em `VOO_MS - 200`, então a foto grande termina de aparecer no instante em
+que o clone some e o texto entra por cima do fim do voo. Sem foto (`.cartao-vazio`) cai
+no **zoom ancorado** (`.zoom`, escala 0.65 → 1 com `transform-origin` no ponto do
+clique, `--lx`/`--ly`). Fechar (× / fundo / **ESC**, via `fecharLupa()`) faz o voo de
+volta; o `cancel` do `<dialog>` é interceptado para o ESC também animar. Com
+`prefers-reduced-motion` não há nada disso.
+
 **Ordem da home**: capa → `#sobre` (apresentação, `config.sobre`) → `#visite` (faixa
 fina de localização) → intro do cardápio (`config.introCardapio`, some se vazia)
 → filtros → grade.

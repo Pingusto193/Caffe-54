@@ -383,9 +383,108 @@ function cartaoHTML(prato) {
 
 /* ---------- foto ampliada ---------- */
 
-function abrirLupa(id) {
+const VOO_MS = 520;   // duração do voo da foto
+
+let origemDaLupa = null;   // elemento que abriu a lupa (para o voo de volta)
+let vooAtual = null;
+
+// De onde a foto sai. O bloco de texto do destaque (#hero-prato) não tem foto
+// dentro: aí a origem é a foto que está visível na capa — a emoldurada no
+// desktop, o fundo no celular (onde a .hero-vitrine é display:none).
+function fotoDeOrigem(elemento) {
+  if (!elemento) return null;
+
+  let alvo = elemento.querySelector("img");
+
+  if (!alvo && elemento.id === "hero-prato") {
+    const emoldurada = $(".hero-foto.ativo .hero-foto-botao img");
+    // offsetParent null = escondido (no celular a vitrine some)
+    alvo = emoldurada && emoldurada.offsetParent !== null
+      ? emoldurada
+      // o <img> do fundo tem transform: scale(), que entraria no rect —
+      // por isso medimos o contêiner do slide
+      : $(".hero-slide.ativo");
+  }
+
+  if (!alvo) return null;
+
+  const foto = alvo.tagName === "IMG" ? alvo : alvo.querySelector("img");
+  const src = foto && (foto.currentSrc || foto.src);
+  if (!src) return null;
+
+  const rect = alvo.getBoundingClientRect();
+  if (rect.width < 4 || rect.height < 4) return null;
+
+  return { rect, src };
+}
+
+function porRect(elemento, rect) {
+  elemento.style.left = `${rect.left}px`;
+  elemento.style.top = `${rect.top}px`;
+  elemento.style.width = `${rect.width}px`;
+  elemento.style.height = `${rect.height}px`;
+}
+
+// FLIP: o clone sai do rect da foto clicada e chega no rect da foto grande.
+function voar(deRect, paraRect, src, aoTerminar) {
+  const clone = $("#lupa-voo");
+  if (vooAtual) vooAtual.cancel();
+
+  clone.src = src;
+  clone.hidden = false;
+  porRect(clone, deRect);
+
+  const quadros = [
+    { left: `${deRect.left}px`, top: `${deRect.top}px`,
+      width: `${deRect.width}px`, height: `${deRect.height}px` },
+    { left: `${paraRect.left}px`, top: `${paraRect.top}px`,
+      width: `${paraRect.width}px`, height: `${paraRect.height}px` },
+  ];
+
+  vooAtual = clone.animate(quadros, {
+    duration: VOO_MS,
+    easing: "cubic-bezier(0.22, 1, 0.36, 1)",   // = var(--mola)
+    fill: "forwards",
+  });
+
+  vooAtual.addEventListener("finish", () => {
+    clone.hidden = true;
+    clone.removeAttribute("src");
+    vooAtual = null;
+    aoTerminar();
+  }, { once: true });
+}
+
+// Fallback: a caixa cresce a partir do ponto clicado.
+function zoomAncorado(lupa, evento, elemento) {
+  const d = lupa.getBoundingClientRect();
+  let x = evento && evento.clientX;
+  let y = evento && evento.clientY;
+
+  // ativação por teclado não traz coordenadas — usa o centro do elemento
+  if (!x && !y && elemento) {
+    const r = elemento.getBoundingClientRect();
+    x = r.left + r.width / 2;
+    y = r.top + r.height / 2;
+  }
+
+  if (!x && !y) {
+    lupa.style.setProperty("--lx", "50%");
+    lupa.style.setProperty("--ly", "50%");
+    return;
+  }
+
+  // preso às bordas da lupa: a direção continua certa e a caixa não dispara
+  lupa.style.setProperty("--lx", `${Math.min(Math.max(x - d.left, 0), d.width)}px`);
+  lupa.style.setProperty("--ly", `${Math.min(Math.max(y - d.top, 0), d.height)}px`);
+}
+
+function abrirLupa(id, origem, evento) {
   const prato = pratos.find((item) => item.id === Number(id));
   if (!prato) return;
+
+  const lupa = $("#lupa");
+  if (lupa.open) return;
 
   const imagem = $("#lupa-imagem");
   if (prato.imagem) {
@@ -402,7 +501,68 @@ function abrirLupa(id) {
   $("#lupa-descricao").textContent = prato.descricao || "";
   $("#lupa-preco").textContent = formatarPreco(prato.preco);
 
-  $("#lupa").showModal();
+  origemDaLupa = origem || null;
+  lupa.classList.remove("zoom", "voando", "saindo");
+
+  const partida = semMovimento || !prato.imagem ? null : fotoDeOrigem(origem);
+
+  if (!partida) {
+    if (!semMovimento) {
+      lupa.showModal();
+      zoomAncorado(lupa, evento, origem);
+      lupa.classList.add("zoom");
+    } else {
+      lupa.showModal();
+    }
+    return;
+  }
+
+  lupa.classList.add("voando");
+  lupa.showModal();
+
+  // o destino só existe depois de o diálogo estar na tela
+  const destino = imagem.getBoundingClientRect();
+  zoomAncorado(lupa, evento, origem);   // guarda a origem para a saída
+
+  voar(partida.rect, destino, partida.src, () => {
+    lupa.classList.remove("voando");
+  });
+
+  // Solta o conteúdo real antes de o voo acabar: o texto entra por cima do
+  // fim do voo (não fica sequencial) e a foto grande termina de aparecer
+  // exatamente quando o clone some — a troca fica invisível.
+  setTimeout(() => lupa.classList.remove("voando"), VOO_MS - 200);
+}
+
+function fecharLupa() {
+  const lupa = $("#lupa");
+  if (!lupa.open) return;
+
+  if (semMovimento) {
+    lupa.close();
+    return;
+  }
+
+  const volta = fotoDeOrigem(origemDaLupa);
+  const imagem = $("#lupa-imagem");
+
+  // só voa de volta se a origem ainda estiver na tela (o dono pode ter
+  // trocado de filtro ou o carrossel pode ter girado)
+  if (volta && !imagem.hidden) {
+    const daLupa = imagem.getBoundingClientRect();
+    lupa.classList.add("voando", "saindo");
+    voar(daLupa, volta.rect, imagem.currentSrc || imagem.src, () => {
+      lupa.classList.remove("voando", "saindo", "zoom");
+      lupa.close();
+    });
+    return;
+  }
+
+  lupa.classList.add("saindo");
+  lupa.addEventListener("animationend", () => {
+    lupa.classList.remove("saindo", "zoom", "voando");
+    lupa.close();
+  }, { once: true });
 }
 
 /* ===================================================================
@@ -1288,21 +1448,26 @@ document.addEventListener("visibilitychange", () => {
 
 $("#grade").addEventListener("click", (evento) => {
   const foto = evento.target.closest(".cartao-foto");
-  if (foto) abrirLupa(foto.dataset.id);
+  if (foto) abrirLupa(foto.dataset.id, foto, evento);
 });
 
 // Na capa: clicar no nome/preço do destaque ou na foto emoldurada abre a
 // explicação do prato, igual ao card do cardápio.
 $("#hero-prato").addEventListener("click", (evento) => {
-  abrirLupa(evento.currentTarget.dataset.prato);
+  abrirLupa(evento.currentTarget.dataset.prato, evento.currentTarget, evento);
 });
 $("#hero-vitrine").addEventListener("click", (evento) => {
   const botao = evento.target.closest("[data-prato]");
-  if (botao) abrirLupa(botao.dataset.prato);
+  if (botao) abrirLupa(botao.dataset.prato, botao, evento);
 });
-$("#lupa-fechar").addEventListener("click", () => $("#lupa").close());
+$("#lupa-fechar").addEventListener("click", fecharLupa);
 $("#lupa").addEventListener("click", (evento) => {
-  if (evento.target === $("#lupa")) $("#lupa").close();
+  if (evento.target === $("#lupa")) fecharLupa();
+});
+// ESC: o padrão fecha na hora — segura e deixa a animação de saída rodar
+$("#lupa").addEventListener("cancel", (evento) => {
+  evento.preventDefault();
+  fecharLupa();
 });
 
 /* ---------- abrir / fechar o painel ---------- */
