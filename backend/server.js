@@ -33,6 +33,36 @@ if (!JWT_SECRET || JWT_SECRET === "sua_chave_secreta_aqui" || JWT_SECRET.length 
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Onde ficam as fotos do cardápio. Em produção (Render) o filesystem do
+// container é efêmero: sem PASTA_IMAGENS apontando para um disco persistente,
+// toda foto enviada pelo painel some no próximo deploy e o banco fica com o
+// nome de um arquivo que não existe mais.
+const PASTA_IMAGENS =
+  process.env.PASTA_IMAGENS ||
+  path.join(__dirname, "..", "frontend", "images", "cardapio");
+fs.mkdirSync(PASTA_IMAGENS, { recursive: true });
+
+// Primeiro boot com disco persistente: o disco chega vazio, e como GET /imagens
+// lista só PASTA_IMAGENS, o seletor "escolher foto existente" do painel viria sem
+// nada — o dono teria de reenviar as fotos do cardápio inicial uma a uma. Então
+// copiamos as do repositório, uma única vez: na segunda subida a pasta já não
+// está vazia e nada é sobrescrito. Sem PASTA_IMAGENS as duas pastas são a mesma
+// e não há cópia nenhuma.
+const PASTA_REPO = path.join(__dirname, "..", "frontend", "images", "cardapio");
+if (path.resolve(PASTA_IMAGENS) !== path.resolve(PASTA_REPO)) {
+  try {
+    if (fs.readdirSync(PASTA_IMAGENS).length === 0) {
+      fs.cpSync(PASTA_REPO, PASTA_IMAGENS, { recursive: true });
+      const copiados = fs.readdirSync(PASTA_IMAGENS).length;
+      console.log(`Disco vazio: ${copiados} fotos copiadas do repositório para ${PASTA_IMAGENS}`);
+    }
+  } catch (erro) {
+    // Não derruba o boot: o site continua servindo as fotos do repositório pelo
+    // static genérico; só o seletor do painel fica vazio.
+    console.warn(`Não deu para semear ${PASTA_IMAGENS} com as fotos do repositório: ${erro.message}`);
+  }
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -42,6 +72,11 @@ app.use((req, res, next) => {
   res.set("X-Content-Type-Options", "nosniff");
   next();
 });
+
+// As fotos do cardápio vêm de PASTA_IMAGENS, que pode estar fora do repositório
+// (disco persistente). Precisa vir ANTES do static genérico, senão o Express
+// serve a pasta antiga de dentro de frontend/ e as fotos novas dão 404.
+app.use("/images/cardapio", express.static(PASTA_IMAGENS));
 
 // serve o site (index.html, styles.css, app.js e as imagens do cardápio)
 app.use(express.static(path.join(__dirname, "..", "frontend")));
@@ -64,9 +99,6 @@ function autenticar(req, res, next) {
 }
 
 // ============ UPLOAD DE IMAGENS ============
-
-const PASTA_IMAGENS = path.join(__dirname, "..", "frontend", "images", "cardapio");
-fs.mkdirSync(PASTA_IMAGENS, { recursive: true });
 
 // heic/heif: o iPhone envia assim quando o navegador não converte. O frontend
 // já reduz e converte para JPEG antes de enviar; isto é a rede de segurança.

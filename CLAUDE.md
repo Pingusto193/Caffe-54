@@ -231,8 +231,21 @@ Tudo desligado em `prefers-reduced-motion: reduce`.
 
 ## Upload de imagens
 
-`POST /upload` usa multer, grava em `frontend/images/cardapio/`, aceita JPG/PNG/WebP/AVIF
+`POST /upload` usa multer, grava em `PASTA_IMAGENS`, aceita JPG/PNG/WebP/AVIF
 até 6 MB. `nomeSeguro()` tira acento/espaço/caminho e cola timestamp base36.
+
+**`PASTA_IMAGENS` (env var) diz onde as fotos são gravadas.** Vazia = o de sempre,
+`frontend/images/cardapio/`. No Render o filesystem do container é efêmero — a cada
+deploy ele é recriado a partir do Git — então lá ela aponta para um disco persistente
+(`/var/data/cardapio`); sem isso as fotos enviadas pelo painel somem no deploy
+seguinte e o banco fica com o nome de um arquivo que não existe mais. No primeiro boot,
+se a pasta destino estiver vazia e for outra que não a do repositório, o servidor copia
+as fotos do repo para lá (senão o seletor de fotos do painel, que lê `PASTA_IMAGENS`,
+apareceria vazio). Roda uma vez só e nunca sobrescreve.
+
+**`app.use("/images/cardapio", express.static(PASTA_IMAGENS))` tem de vir antes do
+static genérico do `frontend/`** — o Express atende na ordem, e o genérico serviria a
+pasta de dentro do repositório, dando 404 nas fotos novas. Ver `DEPLOY.md`.
 
 **O multer entrega `originalname` em latin1** — `Buffer.from(nome,"latin1").toString("utf8")`.
 No `fetch` do upload **não** defina `Content-Type` (o navegador põe o boundary).
