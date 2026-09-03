@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { prisma } from "./lib/prisma.ts";
 import cors from "cors";
-import bcrypt from "bcryptjs";
+import crypto from "node:crypto";
 import jwt from "jsonwebtoken";
 import path from "node:path";
 import fs from "node:fs";
@@ -29,6 +29,34 @@ if (!JWT_SECRET || JWT_SECRET === "sua_chave_secreta_aqui" || JWT_SECRET.length 
     "    node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\"\n"
   );
   process.exit(1);
+}
+
+// Login do painel. Usuário e senha vêm direto do ambiente — .env aqui, aba
+// Environment do Render em produção — e não do banco. Antes era o contrário: o
+// seed gravava um hash na tabela Admin, a senha ficava congelada lá, e mudar
+// ADMIN_SENHA no Render não tinha efeito nenhum. Agora trocar a senha é trocar
+// a variável e reiniciar o serviço.
+const ADMIN_USUARIO = (process.env.ADMIN_USUARIO || "").trim();
+const ADMIN_SENHA = process.env.ADMIN_SENHA || "";
+if (!ADMIN_USUARIO || !ADMIN_SENHA) {
+  // Só o painel depende disso; o site público continua no ar, então aqui é
+  // aviso, não process.exit().
+  console.error("");
+  console.error("  ADMIN_USUARIO e/ou ADMIN_SENHA ausentes: o painel fica sem login.");
+  console.error("  Cadastre os dois no .env (ou no Environment do Render) e reinicie.");
+  console.error("");
+} else {
+  // Ajuda a achar o erro clássico de espaço sobrando ao colar a senha no Render.
+  console.log("Painel: usuário " + ADMIN_USUARIO + ", senha de " + ADMIN_SENHA.length + " caracteres");
+}
+
+// Comparar com === vaza, pelo tempo da comparação, quantos caracteres iniciais
+// bateram. O sha256 antes do timingSafeEqual iguala os tamanhos (a função exige
+// buffers do mesmo tamanho) e não revela o comprimento do valor esperado.
+function confere(recebido, esperado) {
+  const a = crypto.createHash("sha256").update(String(recebido)).digest();
+  const b = crypto.createHash("sha256").update(String(esperado)).digest();
+  return crypto.timingSafeEqual(a, b);
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -489,51 +517,27 @@ app.delete("/menu/:id", autenticar, async (req, res) => {
 
 // ============ ROTAS DE ADMIN ============
 
-app.post("/admin/login", async (req, res) => {
+// Confere contra as variáveis de ambiente e devolve o JWT. Não existe cadastro
+// de admin: é um estabelecimento só, com um login só, definido no ambiente.
+app.post("/admin/login", (req, res) => {
   // aceita { usuario } (novo) ou { email } (compatibilidade)
   const usuario = req.body.usuario ?? req.body.email;
   const { senha } = req.body;
-  try {
-    if (!usuario || !senha) {
-      return res.status(400).json({ error: "Usuário e senha são obrigatórios" });
-    }
-    const admin = await prisma.admin.findUnique({ where: { usuario } });
-    if (!admin || !(await bcrypt.compare(senha, admin.senhaHash))) {
-      return res.status(401).json({ error: "Usuário ou senha incorretos" });
-    }
-    const token = jwt.sign(
-      { id: admin.id, usuario: admin.usuario, restauranteId: admin.restauranteId },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-    res.json({ token, admin: { id: admin.id, usuario: admin.usuario } });
-  } catch (error) {
-    res.status(500).json({ error: "Erro ao fazer login" });
+  if (!usuario || !senha) {
+    return res.status(400).json({ error: "Usuário e senha são obrigatórios" });
   }
-});
-
-// Criar outro admin só faz sentido para quem já entrou. Sem o autenticar
-// aqui, qualquer pessoa na internet poderia criar a própria conta de admin.
-app.post("/admin/register", autenticar, async (req, res) => {
-  const usuario = req.body.usuario ?? req.body.email;
-  const { senha, restauranteId } = req.body;
-  try {
-    if (!usuario || !senha || !restauranteId) {
-      return res.status(400).json({ error: "Usuário, senha e restauranteId são obrigatórios" });
-    }
-    if (await prisma.admin.findUnique({ where: { usuario } })) {
-      return res.status(400).json({ error: "Usuário já cadastrado" });
-    }
-    const novoAdmin = await prisma.admin.create({
-      data: { usuario, senhaHash: await bcrypt.hash(senha, 10), restauranteId },
-    });
-    res.status(201).json({
-      message: "Admin criado com sucesso",
-      admin: { id: novoAdmin.id, usuario: novoAdmin.usuario },
-    });
-  } catch (error) {
-    res.status(400).json({ error: "Erro ao registrar admin" });
+  if (!ADMIN_USUARIO || !ADMIN_SENHA) {
+    return res.status(503).json({ error: "Login do painel não configurado no servidor" });
   }
+  if (!confere(String(usuario).trim(), ADMIN_USUARIO) || !confere(senha, ADMIN_SENHA)) {
+    return res.status(401).json({ error: "Usuário ou senha incorretos" });
+  }
+  const token = jwt.sign(
+    { usuario: ADMIN_USUARIO, restauranteId: RESTAURANTE_ID },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+  res.json({ token, admin: { usuario: ADMIN_USUARIO } });
 });
 
 // ============ INICIAR SERVIDOR ============

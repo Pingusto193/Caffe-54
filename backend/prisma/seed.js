@@ -1,10 +1,6 @@
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
-import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma.ts";
-
-const ADMIN_USUARIO = process.env.ADMIN_USUARIO || "admin.kf54";
-const ADMIN_SENHA = process.env.ADMIN_SENHA || "troque-esta-senha";
 
 const dados = JSON.parse(
   await readFile(new URL("./cardapio-dados.json", import.meta.url), "utf8")
@@ -44,21 +40,6 @@ const restaurante = await prisma.restaurante.upsert({
   where: { id: 1 },
   update: CONFIG_INICIAL,
   create: { id: 1, ...CONFIG_INICIAL },
-});
-
-// remove admins antigos deste restaurante que não sejam o usuário atual
-await prisma.admin.deleteMany({
-  where: { restauranteId: restaurante.id, usuario: { not: ADMIN_USUARIO } },
-});
-
-const admin = await prisma.admin.upsert({
-  where: { usuario: ADMIN_USUARIO },
-  update: { senhaHash: await bcrypt.hash(ADMIN_SENHA, 10) },
-  create: {
-    usuario: ADMIN_USUARIO,
-    senhaHash: await bcrypt.hash(ADMIN_SENHA, 10),
-    restauranteId: restaurante.id,
-  },
 });
 
 // recria as categorias
@@ -106,7 +87,7 @@ const destaques = await prisma.menuItem.count({ where: { restauranteId: restaura
 const nCategorias = await prisma.categoria.count({ where: { restauranteId: restaurante.id } });
 
 console.log(`Restaurante: ${restaurante.nome} (id ${restaurante.id})`);
-console.log(`Admin:       ${admin.usuario} / ${ADMIN_SENHA}`);
+console.log("Admin:       ADMIN_USUARIO / ADMIN_SENHA do ambiente (o seed não mexe no login)");
 console.log(`Categorias:  ${nCategorias}`);
 console.log(`Cardápio:    ${total} itens (${destaques} em destaque)`);
 

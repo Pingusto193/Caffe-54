@@ -19,7 +19,7 @@ Nada de "mandar o banco". São **três coisas** que ficam na hospedagem:
 | O quê | Onde vive | Some quando? |
 |---|---|---|
 | **Código** (backend + frontend + as 35 fotos que já estão no repo) | vem do GitHub | nunca (está no repo) |
-| **Banco PostgreSQL** (cardápio, categorias, config, admin) | um Postgres do Render, separado do app | nunca — é o que guarda tudo que o dono muda no painel |
+| **Banco PostgreSQL** (cardápio, categorias, configuração do site) | um Postgres do Render, separado do app | nunca — é o que guarda tudo que o dono muda no painel |
 | **Fotos enviadas pelo painel** depois do deploy | **disco persistente** montado em `/var/data` | nunca, **desde que** o disco exista e `PASTA_IMAGENS` aponte para ele |
 
 O filesystem do container é **efêmero**: a cada deploy o Render recria a máquina a
@@ -41,7 +41,8 @@ O fluxo do primeiro deploy:
 2. O Render cria um Postgres **vazio** e te dá a `DATABASE_URL`.
 3. O Start Command roda `prisma migrate deploy` antes de subir o servidor → cria as tabelas.
 4. **Uma única vez**, você roda `npm run db:seed` da sua máquina → carrega as 6
-   categorias + 28 itens + o admin.
+   categorias + 28 itens. O login do painel não vem daqui: sai direto das
+   variáveis `ADMIN_USUARIO`/`ADMIN_SENHA`.
 5. A partir daí, tudo que o dono mexe no painel é gravado nesse Postgres e **fica**.
    Deploys de código novo rodam só `migrate deploy` (que é aditivo) — **nunca**
    re-rodam o seed.
@@ -89,8 +90,8 @@ O fluxo do primeiro deploy:
    |---|---|
    | `DATABASE_URL` | a **Internal** Database URL do passo 2 |
    | `JWT_SECRET` | valor longo e aleatório — `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
-   | `ADMIN_USUARIO` | o usuário que você escolher para o painel |
-   | `ADMIN_SENHA` | a senha que você escolher (guarde num gerenciador) |
+   | `ADMIN_USUARIO` | o usuário do painel — o servidor confere o login direto contra esta variável |
+   | `ADMIN_SENHA` | a senha do painel. Mudar aqui e salvar já troca a senha: o Render reinicia sozinho |
    | `NODE_VERSION` | `22.18.0` |
    | `PASTA_IMAGENS` | `/var/data/cardapio` |
 
@@ -160,14 +161,16 @@ Não há nada para mudar no código ao trocar de ambiente: quem decide é a pró
 
 - O `.env` nunca vai pro git (confirmado no `.gitignore`). As variáveis ficam só no
   painel do Render. O `.env.example` vai para o git **sem valor nenhum**.
-- A senha é guardada **com hash bcrypt** no banco — nem no banco ela aparece em texto puro.
+- O login é conferido direto contra `ADMIN_USUARIO`/`ADMIN_SENHA` — não existe usuário
+  no banco. A comparação é de tempo constante (sha256 + `timingSafeEqual`), então o
+  tempo de resposta não entrega quantos caracteres alguém acertou.
 - O Render serve tudo por **HTTPS**, então a senha não trafega aberta.
 - O `JWT_SECRET` é aleatório e longo — sem ele ninguém forja um token, e o servidor
   nem sobe se ele faltar.
 
-**Guarde a senha** num gerenciador — ela não é recuperável (só dá pra trocar mudando
-`ADMIN_SENHA` e rodando o seed de novo, o que apaga o cardápio; melhor, no futuro,
-uma tela de "trocar senha").
+**Trocar (ou consultar) a senha**: Settings → Environment → `ADMIN_SENHA`. O valor está
+ali, e salvar um novo reinicia o serviço com a senha nova. Nada de seed, nada de banco,
+o cardápio não é tocado.
 
 ## Backup
 

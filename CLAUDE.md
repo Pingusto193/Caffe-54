@@ -11,15 +11,16 @@ tudo. Sem delivery, iFood, WhatsApp, reservas ou pagamento — isso fica para de
 npm run dev              # nodemon, sobe em http://localhost:3001
 npm start                # sem reload
 npm run db:migrate       # prisma migrate dev  (--create-only em ambiente não-interativo)
-npm run db:seed          # recria categorias + cardápio + admin (APAGA e recria)
+npm run db:seed          # recria categorias + cardápio (APAGA e recria)
 npm run db:studio        # prisma studio
 npm run db:generate      # regenera o client
 npm run extrair-pdf -- <caminho.pdf>   # reextrai imagens e dados do PDF (precisa de Python)
 ```
 
-Login do painel: **usuário** `admin.kf54` + senha (ambos em `.env` como
-`ADMIN_USUARIO` / `ADMIN_SENHA`, criados pelo seed). É usuário, não e-mail — a coluna
-`Admin.usuario` (era `email`).
+Login do painel: **usuário** e **senha** saem direto do ambiente — `ADMIN_USUARIO` /
+`ADMIN_SENHA`, no `.env` aqui e no Environment do Render em produção. Não há usuário
+no banco e o seed não mexe nisso: trocar a senha é trocar a variável e reiniciar o
+servidor. É usuário, não e-mail.
 
 ## Arquitetura
 
@@ -59,8 +60,7 @@ scripts do `package.json`).
 | `POST /menu` | JWT | cria (`categoriaId`, `ativo`, `destaque`) |
 | `PUT /menu/:id` | JWT | edita (envie só os campos que mudam) |
 | `DELETE /menu/:id` | JWT | remove |
-| `POST /admin/login` | não | devolve o token JWT |
-| `POST /admin/register` | JWT | cria outro admin (protegido) |
+| `POST /admin/login` | não | confere `{usuario, senha}` contra `ADMIN_USUARIO`/`ADMIN_SENHA` e devolve o token JWT |
 | `POST /upload` | JWT | envia uma foto, devolve o nome do arquivo |
 | `GET /imagens` | JWT | lista os arquivos de `frontend/images/cardapio/` |
 
@@ -76,8 +76,10 @@ scripts do `package.json`).
   painel (criar/renomear/reordenar/excluir). A `ordem` define a ordem dos blocos no site.
 - **`MenuItem`**: `nome`, `descricao`, `preco`, `imagem`, `destaque`, `ativo`,
   `categoriaId` (FK, `onDelete: Restrict`). **Não tem mais `categoria` string nem `carrossel`.**
-- **`Admin`**: `usuario` (@unique), `senhaHash` (bcrypt). `POST /admin/login` aceita
-  `{usuario, senha}` (e `{email}` como alias legado).
+- **`Admin`**: tabela **legada, sem uso** — o login não passa mais pelo banco. Ficou no
+  schema (e no banco de produção) para não exigir uma migração destrutiva; nada lê nem
+  escreve nela. `POST /admin/login` aceita `{usuario, senha}` (e `{email}` como alias
+  legado).
 - Tudo pendurado em `restauranteId = 1` (`RESTAURANTE_ID` no server.js). Ver
   "Login por estabelecimento" abaixo.
 
@@ -103,6 +105,11 @@ o `.ts` dá `ERR_MODULE_NOT_FOUND`. O Node faz type-stripping nativo do `.ts`.
 
 **`npm run db:seed` apaga categorias + cardápio e zera a config do site.** Não rode
 em produção sem pensar.
+
+**A senha do painel não está no banco** — o `/admin/login` confere contra
+`ADMIN_SENHA`. Já foi o contrário (hash na tabela `Admin`, gravado pelo seed) e isso
+travou o primeiro deploy: mudar `ADMIN_SENHA` no Render não mudava nada, porque o hash
+ficava congelado no banco desde o seed rodado da máquina local.
 
 **`overrides: { "deepmerge-ts": "^8" }` no package.json** resolve 3 vulns high herdadas
 do `@prisma/config`. Não remover sem checar `npm audit`.
@@ -252,8 +259,10 @@ No `fetch` do upload **não** defina `Content-Type` (o navegador põe o boundary
 
 ## Login por estabelecimento (futuro — não implementado)
 
-Já ajuda: `Restaurante`/`Admin`/`Categoria`/`MenuItem` têm `restauranteId`; o JWT
-carrega `restauranteId` e `usuario`; a tela de login (usuário + senha) existe.
+Já ajuda: `Restaurante`/`Categoria`/`MenuItem` têm `restauranteId`; o JWT carrega
+`restauranteId` e `usuario`; a tela de login (usuário + senha) existe. Com mais de um
+estabelecimento o login volta para o banco — a tabela `Admin`, hoje sem uso, continua
+lá; uma variável de ambiente só serve para um dono.
 
 Falta: (1) trocar `RESTAURANTE_ID = 1` por `req.admin.restauranteId` nas rotas
 autenticadas e resolver o restaurante das rotas públicas por subdomínio/slug;
